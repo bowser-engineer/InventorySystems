@@ -19,8 +19,9 @@ public:
 	AInv_PlayerController();
 	virtual void Tick(float DeltaTime) override;
 
-	UFUNCTION(Blueprintable)
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void ToggleInventory();
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
