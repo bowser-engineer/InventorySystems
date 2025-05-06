@@ -8,6 +8,9 @@
 
 #include "Inv_InventoryGrid.generated.h"
 
+struct FInv_ImageFragment;
+struct FInv_GridFragment;
+class UInv_SlottedItem;
 class UInv_ItemComponent;
 struct FInv_ItemManifest;
 class UCanvasPanel;
@@ -36,7 +39,18 @@ private:
 	void ConstructGrid();
 	FInv_SlotAvailabilityResult HasRoomForItem(const UInv_InventoryItem* Item);
 	FInv_SlotAvailabilityResult HasRoomForItem(const FInv_ItemManifest& Manifest);
-
+	void AddItemToIndices(const FInv_SlotAvailabilityResult& Result, UInv_InventoryItem* NewItem);
+	bool MatchesCategory(const UInv_InventoryItem* Item) const;
+	FVector2D GetDrawSize(const FInv_GridFragment* GridFragment) const;
+	void SetSlottedItemImage(const UInv_SlottedItem* SlottedItem, const FInv_GridFragment* GridFragment, const FInv_ImageFragment* ImageFragment) const;
+	void AddItemAtIndex(UInv_InventoryItem* Item, const int32 Index, const bool bStackable, const int32 StackAmount);
+	UInv_SlottedItem* CreateSlottedItem(UInv_InventoryItem* Item,
+		const bool bStackable,
+		const int32 StackAmount,
+		const FInv_GridFragment* GridFragment,
+		const FInv_ImageFragment* ImageFragment,
+		const int32 Index);
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"),  Category = "Inventory")
 	EInv_ItemCategory ItemCategory;
 
@@ -50,6 +64,9 @@ private:
 	TObjectPtr<UCanvasPanel> CanvasPanel;
 
 	UPROPERTY(EditAnywhere, Category = "Inventory")
+	TSubclassOf<UInv_SlottedItem> SlottedItemClass;
+
+	UPROPERTY(EditAnywhere, Category = "Inventory")
 	int32 Rows;
 
 	UPROPERTY(EditAnywhere, Category = "Inventory")
@@ -58,7 +75,7 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	float TileSize;
 
-	bool MatchesCategory(const UInv_InventoryItem* Item) const;
+
 };
 
 

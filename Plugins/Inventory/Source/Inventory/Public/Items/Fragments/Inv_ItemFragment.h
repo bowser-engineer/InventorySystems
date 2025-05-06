@@ -42,6 +42,7 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	float GridPadding{0.f};
+	
 };
 
 USTRUCT(BlueprintType)
