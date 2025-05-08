@@ -77,21 +77,3 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	int32 StackCount{1};
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -16,6 +16,3 @@ void UInv_ItemComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 
 	DOREPLIFETIME(ThisClass, ItemManifest);
 }
-
-
-

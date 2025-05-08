@@ -42,17 +42,3 @@ void UInv_InventoryStatics::ForEach2D(TArray<T>& Array, int32 Index, const FIntP
 		}
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -39,19 +39,3 @@ struct FInv_SlotAvailabilityResult
 	bool bStackable{false};
 	TArray<FInv_SlotAvailability> SlotAvailabilities;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

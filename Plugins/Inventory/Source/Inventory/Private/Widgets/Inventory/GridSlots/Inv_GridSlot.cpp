@@ -34,18 +34,3 @@ void UInv_GridSlot::SetGrayedOutTexture()
 	GridSlotState = EInv_GridSlotState::GrayedOut;
 	Image_GridSlot->SetBrush(Brush_GrayedOut);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

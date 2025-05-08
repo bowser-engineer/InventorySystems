@@ -67,21 +67,3 @@ private:
 	EInv_GridSlotState GridSlotState;
 	
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

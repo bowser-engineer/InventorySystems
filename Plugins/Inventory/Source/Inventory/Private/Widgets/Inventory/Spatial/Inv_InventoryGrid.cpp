@@ -264,17 +264,3 @@ bool UInv_InventoryGrid::MatchesCategory(const UInv_InventoryItem* Item) const
 {
 	return Item->GetItemManifest().GetItemCategory() == ItemCategory;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

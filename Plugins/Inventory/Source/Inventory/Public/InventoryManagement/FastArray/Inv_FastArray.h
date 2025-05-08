@@ -66,24 +66,3 @@ struct TStructOpsTypeTraits<FInv_InventoryFastArray> : public TStructOpsTypeTrai
 {
 	enum { WithNetDeltaSerializer = true };
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

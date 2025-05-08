@@ -57,17 +57,3 @@ private:
 	TWeakObjectPtr<AActor> ThisActor;
 	TWeakObjectPtr<AActor> LastActor;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-

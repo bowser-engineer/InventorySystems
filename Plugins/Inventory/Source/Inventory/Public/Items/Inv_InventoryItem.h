@@ -37,18 +37,3 @@ const FragmentType* GetFragment(const UInv_InventoryItem* Item, const FGameplayT
 	const FInv_ItemManifest& Manifest = Item->GetItemManifest();
 	return Manifest.GetFragmentOfTypeWithTag<FragmentType>(Tag);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

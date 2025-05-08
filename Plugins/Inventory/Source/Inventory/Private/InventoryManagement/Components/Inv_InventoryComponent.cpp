@@ -127,17 +127,3 @@ void UInv_InventoryComponent::CloseInventoryMenu()
 	OwningController->SetInputMode(InputMode);
 	OwningController->SetShowMouseCursor(false);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

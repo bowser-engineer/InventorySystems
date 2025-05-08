@@ -55,17 +55,3 @@ private:
 	void DisableButton(UButton* Button);
 	void SetActiveGrid(UInv_InventoryGrid* Grid, UButton* Button);
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-

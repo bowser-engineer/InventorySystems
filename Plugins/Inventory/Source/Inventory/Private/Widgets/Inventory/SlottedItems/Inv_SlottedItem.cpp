@@ -29,11 +29,3 @@ void UInv_SlottedItem::UpdateStackCount(int32 StackCount)
 		Text_StackCount->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
-
-
-
-
-
-
-
-

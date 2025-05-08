@@ -31,16 +31,3 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	FString PickupMessage;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-

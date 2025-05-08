@@ -23,28 +23,3 @@ void UInv_HUDWidget::OnNoRoom()
 	if (!IsValid(InfoMessage)) return;
 	InfoMessage->SetMessage(FText::FromString("No Room In Inventory."));
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -46,13 +46,3 @@ namespace GameItems
 		UE_DEFINE_GAMEPLAY_TAG(ScorchPetalBlossom, "GameItems.Craftables.ScorchPetalBlossom")
 	}
 }
-
-
-
-
-
-
-
-
-
-

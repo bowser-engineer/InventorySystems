@@ -29,20 +29,3 @@ void UInv_InfoMessage::SetMessage(const FText& Message)
 		bIsMessageActive = false;
 	}, MessageLifetime, false);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

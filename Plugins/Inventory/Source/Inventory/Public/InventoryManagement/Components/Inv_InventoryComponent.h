@@ -61,17 +61,3 @@ private:
 	void CloseInventoryMenu();
 	
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-

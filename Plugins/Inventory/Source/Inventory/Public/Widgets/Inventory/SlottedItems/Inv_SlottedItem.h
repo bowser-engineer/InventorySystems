@@ -40,19 +40,3 @@ private:
 	TWeakObjectPtr<UInv_InventoryItem> InventoryItem;
 	bool bIsStackable{false};
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

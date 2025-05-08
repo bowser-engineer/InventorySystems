@@ -73,18 +73,3 @@ const T* FInv_ItemManifest::GetFragmentOfType() const
 	
 	return nullptr;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

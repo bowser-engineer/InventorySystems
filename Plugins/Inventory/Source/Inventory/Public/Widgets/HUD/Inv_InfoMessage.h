@@ -33,18 +33,3 @@ private:
 	FTimerHandle MessageTimer;
 	bool bIsMessageActive{false};
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

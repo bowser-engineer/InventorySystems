@@ -31,17 +31,3 @@ private:
 	UFUNCTION()
 	void OnNoRoom();
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
