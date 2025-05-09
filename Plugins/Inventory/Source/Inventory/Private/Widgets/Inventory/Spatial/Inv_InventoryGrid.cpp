@@ -176,7 +176,7 @@ bool UInv_InventoryGrid::DoesItemTypeMatch(const UInv_InventoryItem* SubItem, co
 
 bool UInv_InventoryGrid::IsInGridBounds(const int32 StartIndex, const FIntPoint& ItemDimensions) const
 {
-	if (StartIndex < 0 || StartIndex <= GridSlots.Num()) return false;
+	if (StartIndex < 0 || StartIndex >= GridSlots.Num()) return false;
 	const int32 EndColumn = (StartIndex % Columns) + ItemDimensions.X;
 	const int32 EndRow = (StartIndex / Columns) + ItemDimensions.Y;
 	return EndColumn <= Columns && EndRow <= Rows;
