@@ -76,6 +76,9 @@ private:
 
 	UFUNCTION()
 	void AddStacks(const FInv_SlotAvailabilityResult& Result);
+
+	UFUNCTION()
+	void OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"),  Category = "Inventory")
 	EInv_ItemCategory ItemCategory;
