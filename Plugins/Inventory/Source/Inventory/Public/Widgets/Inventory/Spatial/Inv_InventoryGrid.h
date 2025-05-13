@@ -18,6 +18,7 @@ class UCanvasPanel;
 class UInv_GridSlot;
 class UInv_InventoryComponent;
 struct FGameplayTag;
+enum class EInv_GridSlotState : uint8;
 /**
  * 
  */
@@ -90,6 +91,7 @@ private:
 	bool CursorExitedCanvas(const FVector2D& BoundaryPos, const FVector2D& BoundarySize, const FVector2D& Location);
 	void HighlightSlots(const int32 Index, const FIntPoint& Dimensions);
 	void UnHighlightSlots(const int32 Index, const FIntPoint& Dimensions);
+	void ChangeHoverType(const int32 Index, const FIntPoint& Dimensions, EInv_GridSlotState GridSlotState);
 	
 	UFUNCTION()
 	void AddStacks(const FInv_SlotAvailabilityResult& Result);
