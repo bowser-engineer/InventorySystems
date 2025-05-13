@@ -86,7 +86,8 @@ private:
 	EInv_TileQuadrant CalculateTileQuadrant(const FVector2D& CanvasPosition, const FVector2D& MousePosition) const;
 	void OnTileParametersUpdated(const FInv_TileParameters& Parameters);
 	FIntPoint CalculateStartingCoordinate(const FIntPoint& Coordinate, const FIntPoint& Dimensions, const EInv_TileQuadrant Quadrant) const;
-
+	FInv_SpaceQueryResult CheckHoverPosition(const FIntPoint& Position, const FIntPoint& Dimensions) const;
+	
 	UFUNCTION()
 	void AddStacks(const FInv_SlotAvailabilityResult& Result);
 
@@ -128,4 +129,8 @@ private:
 
 	FInv_TileParameters TileParameters;
 	FInv_TileParameters LastTileParameters;
+
+	// Index where an item would be placed if we click on the grid at a valid location
+	int32 ItemDropIndex{INDEX_NONE};
+	FInv_SpaceQueryResult CurrentQueryResult;
 };
