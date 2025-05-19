@@ -98,6 +98,8 @@ private:
 	void ClearHoverItem();
 	UUserWidget* GetVisibleCursorWidget();
 	UUserWidget* GetHiddenCursorWidget();
+	bool IsSameStackable(const UInv_InventoryItem* ClickedInventoryItem) const;
+	void SwapWithHoverItem(UInv_InventoryItem* ClickedInventoryItem, const int32 GridIndex);
 
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	TSubclassOf<UUserWidget> VisibleCursorWidgetClass;
