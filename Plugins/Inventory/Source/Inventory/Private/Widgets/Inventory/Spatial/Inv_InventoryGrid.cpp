@@ -677,6 +677,40 @@ void UInv_InventoryGrid::ClearHoverItem()
 
 	HoverItem->RemoveFromParent();
 	HoverItem = nullptr;
+
+	ShowCursor();
+}
+
+UUserWidget* UInv_InventoryGrid::GetVisibleCursorWidget()
+{
+	if (!IsValid(GetOwningPlayer())) return nullptr;
+	if (!IsValid(VisibleCursorWidget))
+	{
+		VisibleCursorWidget = CreateWidget<UUserWidget>(GetOwningPlayer(), VisibleCursorWidgetClass);
+	}
+	return VisibleCursorWidget;
+}
+
+UUserWidget* UInv_InventoryGrid::GetHiddenCursorWidget()
+{
+	if (!IsValid(GetOwningPlayer())) return nullptr;
+	if (!IsValid(HiddenCursorWidget))
+	{
+		HiddenCursorWidget = CreateWidget<UUserWidget>(GetOwningPlayer(), HiddenCursorWidgetClass);
+	}
+	return HiddenCursorWidget;
+}
+
+void UInv_InventoryGrid::ShowCursor()
+{
+	if (!IsValid(GetOwningPlayer())) return;
+	GetOwningPlayer()->SetMouseCursorWidget(EMouseCursor::Default, GetVisibleCursorWidget());
+}
+
+void UInv_InventoryGrid::HideCursor()
+{
+	if (!IsValid(GetOwningPlayer())) return;
+	GetOwningPlayer()->SetMouseCursorWidget(EMouseCursor::Default, GetHiddenCursorWidget());
 }
 
 void UInv_InventoryGrid::OnGridSlotHovered(int32 GridIndex, const FPointerEvent& MouseEvent)

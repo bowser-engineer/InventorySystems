@@ -62,6 +62,9 @@ void UInv_SpatialInventory::DisableButton(UButton* Button)
 
 void UInv_SpatialInventory::SetActiveGrid(UInv_InventoryGrid* Grid, UButton* Button)
 {
+	if (ActiveGrid.IsValid()) ActiveGrid->HideCursor();
+	ActiveGrid = Grid;
+	if (ActiveGrid.IsValid()) ActiveGrid->ShowCursor();
 	DisableButton(Button);
 	Switcher->SetActiveWidget(Grid);
 }
