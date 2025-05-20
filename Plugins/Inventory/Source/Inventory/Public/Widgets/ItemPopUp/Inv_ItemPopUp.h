@@ -15,13 +15,22 @@ class USlider;
 class UTextBlock;
 class USizeBox;
 
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FPopUpMenuSplit, int32, SplitAmount, int32, Index);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FPopUpMenuDrop, int32, Index);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FPopUpMenuConsume, int32, Index);
+
 UCLASS()
 class INVENTORY_API UInv_ItemPopUp : public UUserWidget
 {
 	GENERATED_BODY()
 public:
 	virtual void NativeOnInitialized() override;
+	
+	FPopUpMenuSplit OnSplit;
+	FPopUpMenuDrop OnDrop;
+	FPopUpMenuConsume OnConsume;
 
+	int32 GetSplitAmount() const;
 private:
 
 	UPROPERTY(meta = (BindWidget))
@@ -41,6 +50,8 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USizeBox> SizeBox_Root;
+
+	int32 GridIndex{INDEX_NONE};
 
 	UFUNCTION()
 	void SplitButtonClicked();
