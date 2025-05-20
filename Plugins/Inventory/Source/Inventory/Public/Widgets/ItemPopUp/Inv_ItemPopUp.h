@@ -19,6 +19,8 @@ UCLASS()
 class INVENTORY_API UInv_ItemPopUp : public UUserWidget
 {
 	GENERATED_BODY()
+public:
+	virtual void NativeOnInitialized() override;
 
 private:
 
@@ -39,5 +41,17 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USizeBox> SizeBox_Root;
+
+	UFUNCTION()
+	void SplitButtonClicked();
+
+	UFUNCTION()
+	void DropButtonClicked();
+
+	UFUNCTION()
+	void ConsumeButtonClicked();
+
+	UFUNCTION()
+	void SliderValueChanged(float Value);
 	
 };
