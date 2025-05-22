@@ -127,8 +127,10 @@ void UInv_InventoryComponent::Server_ConsumeItem_Implementation(UInv_InventoryIt
 		Item->SetTotalStackCount(NewStackCount);
 	}
 
-	// TODO: Get the consumable fragment and call Consume()
-	// (Actually create the Consumable Fragement)
+	if (FInv_ConsumableFragment* ConsumableFragment = Item->GetItemManifestMutable().GetFragmentOfTypeMutable<FInv_ConsumableFragment>())
+	{
+		ConsumableFragment->OnConsume(OwningController.Get());
+	}
 }
 
 void UInv_InventoryComponent::ToggleInventoryMenu()
