@@ -10,4 +10,5 @@ namespace FragmentTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ConsumableFragment)
 
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemNameFragment)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(PrimaryStatFragment)
 }

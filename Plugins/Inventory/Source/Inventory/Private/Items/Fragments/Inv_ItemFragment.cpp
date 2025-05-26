@@ -2,6 +2,7 @@
 
 #include "Widgets/Composite/Inv_CompositeBase.h"
 #include "Widgets/Composite/Inv_Leaf_Image.h"
+#include "Widgets/Composite/Inv_Leaf_LabeledValue.h"
 #include "Widgets/Composite/Inv_Leaf_Text.h"
 #include "Windows/WindowsApplication.h"
 
@@ -38,6 +39,34 @@ void FInv_TextFragment::Assimilate(UInv_CompositeBase* Composite) const
 	if (!IsValid(LeafText)) return;
 
 	LeafText->SetText(FragmentText);
+}
+
+void FInv_LabeledNumberFragment::Assimilate(UInv_CompositeBase* Composite) const
+{
+	FInv_InventoryItemFragment::Assimilate(Composite);
+	if (!MatchesWidgetTag(Composite)) return;
+	
+	UInv_Leaf_LabeledValue* LabeledValue = Cast<UInv_Leaf_LabeledValue>(Composite);
+	if (!IsValid(LabeledValue)) return;
+
+	LabeledValue->SetText_Label(Text_Label, bCollapseLabel);
+
+	FNumberFormattingOptions Options;
+	Options.MinimumFractionalDigits = MinFractionalDigits;
+	Options.MaximumFractionalDigits = MaxFractionalDigits;
+	
+	LabeledValue->SetText_Value(FText::AsNumber(Value, &Options), bCollapseValue);
+}
+
+void FInv_LabeledNumberFragment::Manifest()
+{
+	FInv_InventoryItemFragment::Manifest();
+
+	if (bRandomizeOnManifest)
+	{
+		Value = FMath::FRandRange(Min, Max);
+	}
+	bRandomizeOnManifest = false;
 }
 
 void FInv_HealthPotionFragment::OnConsume(APlayerController* PC)
