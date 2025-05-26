@@ -6,6 +6,7 @@
 #include "Widgets/Inventory/InventoryBase/Inv_InventoryBase.h"
 #include "Inv_SpatialInventory.generated.h"
 
+class UInv_ItemDescription;
 class UInv_InventoryGrid;
 class UWidgetSwitcher;
 class UButton;
@@ -50,6 +51,19 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button_Craftables;
+
+	UPROPERTY(EditAnywhere, Category = "Inventory")
+	TSubclassOf<UInv_ItemDescription> ItemDescriptionClass;
+
+	UPROPERTY()
+	TObjectPtr<UInv_ItemDescription> ItemDescription;
+
+	FTimerHandle DescriptionTimer;
+
+	UPROPERTY(EditAnywhere, Category = "Inventory")
+	float DescriptionTimerDelay = 0.5f;
+
+	UInv_ItemDescription* GetItemDescription();
 
 	UFUNCTION()
 	void ShowEquippables();
