@@ -2,6 +2,8 @@
 
 #include "Widgets/Composite/Inv_CompositeBase.h"
 #include "Widgets/Composite/Inv_Leaf_Image.h"
+#include "Widgets/Composite/Inv_Leaf_Text.h"
+#include "Windows/WindowsApplication.h"
 
 void FInv_InventoryItemFragment::Assimilate(UInv_CompositeBase* Composite) const
 {
@@ -25,6 +27,17 @@ void FInv_ImageFragment::Assimilate(UInv_CompositeBase* Composite) const
 	Image->SetImage(Icon);
 	Image->SetBoxSize(IconDimensions);
 	Image->SetImageSize(IconDimensions);
+}
+
+void FInv_TextFragment::Assimilate(UInv_CompositeBase* Composite) const
+{
+	FInv_InventoryItemFragment::Assimilate(Composite);
+	if (!MatchesWidgetTag(Composite)) return;
+
+	UInv_Leaf_Text* LeafText = Cast<UInv_Leaf_Text>(Composite);
+	if (!IsValid(LeafText)) return;
+
+	LeafText->SetText(FragmentText);
 }
 
 void FInv_HealthPotionFragment::OnConsume(APlayerController* PC)
