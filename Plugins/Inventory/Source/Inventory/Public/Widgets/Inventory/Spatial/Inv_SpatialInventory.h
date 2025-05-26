@@ -21,6 +21,7 @@ class INVENTORY_API UInv_SpatialInventory : public UInv_InventoryBase
 public:
 	virtual void NativeOnInitialized() override;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	virtual FInv_SlotAvailabilityResult HasRoomForItem(UInv_ItemComponent* ItemComponent) const override;
 	virtual void OnItemHovered(UInv_InventoryItem* Item) override;
@@ -76,5 +77,7 @@ private:
 	
 	void DisableButton(UButton* Button);
 	void SetActiveGrid(UInv_InventoryGrid* Grid, UButton* Button);
+	void SetItemDescriptionSizeAndPosition(UInv_ItemDescription* Description, UCanvasPanel* Canvas) const;
+	
 	TWeakObjectPtr<UInv_InventoryGrid> ActiveGrid;
 };
