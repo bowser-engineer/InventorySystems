@@ -38,6 +38,7 @@ public:
 	void SetOwningCanvas(UCanvasPanel* OwningCanvas);
 	void DropItem();
 	bool HasHoverItem() const;
+	UInv_HoverItem* GetHoverItem() const;
 
 	UFUNCTION()
 	void AddItem(UInv_InventoryItem* Item);

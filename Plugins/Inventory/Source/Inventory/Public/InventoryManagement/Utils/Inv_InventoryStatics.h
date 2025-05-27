@@ -7,9 +7,8 @@
 #include "Widgets/Utils/Inv_WidgetUtils.h"
 #include "Inv_InventoryStatics.generated.h"
 
-/**
- * 
- */
+class UInv_HoverItem;
+
 UCLASS()
 class INVENTORY_API UInv_InventoryStatics : public UBlueprintFunctionLibrary
 {
@@ -30,6 +29,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	static void ItemUnhovered(APlayerController* PC);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	static UInv_HoverItem* GetHoverItem(APlayerController* PC);
 };
 
 template<typename T, typename FuncT>
