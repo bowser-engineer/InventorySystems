@@ -6,6 +6,8 @@
 #include "Widgets/Inventory/InventoryBase/Inv_InventoryBase.h"
 #include "Inv_SpatialInventory.generated.h"
 
+struct FGameplayTag;
+class UInv_EquippedGridSlot;
 class UInv_ItemDescription;
 class UInv_InventoryGrid;
 class UWidgetSwitcher;
@@ -86,6 +88,7 @@ private:
 	void DisableButton(UButton* Button);
 	void SetActiveGrid(UInv_InventoryGrid* Grid, UButton* Button);
 	void SetItemDescriptionSizeAndPosition(UInv_ItemDescription* Description, UCanvasPanel* Canvas) const;
+	bool CanEquipHoverItem(UInv_EquippedGridSlot* EquippedGridSlot, const FGameplayTag& EquipmentTypeTag) const;
 	
 	TWeakObjectPtr<UInv_InventoryGrid> ActiveGrid;
 };
