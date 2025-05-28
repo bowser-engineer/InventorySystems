@@ -5,6 +5,9 @@
 
 #include "Components/Image.h"
 #include "InventoryManagement/Utils/Inv_InventoryStatics.h"
+#include "Items/Inv_InventoryItem.h"
+#include "Items/Fragments/Inv_FragmentTags.h"
+#include "Items/Fragments/Inv_ItemFragment.h"
 #include "Widgets/Inventory/HoverItem/Inv_HoverItem.h"
 
 void UInv_EquippedGridSlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -42,8 +45,19 @@ FReply UInv_EquippedGridSlot::NativeOnMouseButtonDown(const FGeometry& InGeometr
 UInv_EquippedSlottedItem* UInv_EquippedGridSlot::OnItemEquipped(UInv_InventoryItem* Item, const FGameplayTag& EquipmentTag, float TileSize)
 {
 	// Check the Equipment Type Tag
+	if (!EquipmentTag.MatchesTagExact(EquipmentTypeTag)) return nullptr;
+	
 	// Get Grid Dimensions
+	
 	// Calculate the Draw Size for the Equipped Slotted Item
+	const FInv_GridFragment* GridFragment = GetFragment<FInv_GridFragment>(Item, FragmentTags::GridFragment);
+	if (!GridFragment) return nullptr;
+
+	const FIntPoint GridDimensions = GridFragment->GetGridSize();
+
+	const float IconTileWidth = TileSize - GridFragment->GetGridPadding() * 2;
+	const FVector2D DrawSize = GridDimensions * IconTileWidth;
+	
 	// Create the Equipped Slotted Item widget
 	// Set the Slotted Item's Inventory Item
 	// Set the Slotted Item's Equipment Type Tag
