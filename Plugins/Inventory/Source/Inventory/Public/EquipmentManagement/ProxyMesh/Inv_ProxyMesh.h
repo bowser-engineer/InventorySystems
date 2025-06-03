@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Rendering/RenderCommandPipes.h"
 #include "Inv_ProxyMesh.generated.h"
 
 class UInv_EquipmentComponent;
@@ -15,6 +16,7 @@ class INVENTORY_API AInv_ProxyMesh : public AActor
 
 public:
 	AInv_ProxyMesh();
+	USkeletalMeshComponent* GetMesh() const { return Mesh; }
 
 protected:
 	virtual void BeginPlay() override;
