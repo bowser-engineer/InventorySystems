@@ -30,4 +30,8 @@ private:
 	// This is the proxy mesh we will see in the Inventory Menu.
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USkeletalMeshComponent> Mesh;
+
+	FTimerHandle TimerForNextTick;
+	void DelayedInitializeOwner();
+	void DelayedInitialization();
 };
