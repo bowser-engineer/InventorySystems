@@ -218,6 +218,24 @@ struct FInv_StrengthModifier : public FInv_EquipModifier
 	virtual void OnUnequip(APlayerController* PC) override;
 };
 
+USTRUCT(BlueprintType)
+struct FInv_ArmorModifier : public FInv_EquipModifier
+{
+	GENERATED_BODY()
+
+	virtual void OnEquip(APlayerController* PC) override;
+	virtual void OnUnequip(APlayerController* PC) override;
+};
+
+USTRUCT(BlueprintType)
+struct FInv_DamageModifier : public FInv_EquipModifier
+{
+	GENERATED_BODY()
+
+	virtual void OnEquip(APlayerController* PC) override;
+	virtual void OnUnequip(APlayerController* PC) override;
+};
+
 class AInv_EquipActor;
 USTRUCT(BlueprintType)
 struct FInv_EquipmentFragment : public FInv_InventoryItemFragment

@@ -145,6 +145,46 @@ void FInv_StrengthModifier::OnUnequip(APlayerController* PC)
 			GetValue()));
 }
 
+void FInv_ArmorModifier::OnEquip(APlayerController* PC)
+{
+	GEngine->AddOnScreenDebugMessage(
+		-1,
+		5.f,
+		FColor::Green,
+		FString::Printf(TEXT("Item equipped. Armor increased by: %f"),
+			GetValue()));
+}
+
+void FInv_ArmorModifier::OnUnequip(APlayerController* PC)
+{
+	GEngine->AddOnScreenDebugMessage(
+		-1,
+		5.f,
+		FColor::Red,
+		FString::Printf(TEXT("Item unequipped. Armor decreased by: %f"),
+			GetValue()));
+}
+
+void FInv_DamageModifier::OnEquip(APlayerController* PC)
+{
+	GEngine->AddOnScreenDebugMessage(
+		-1,
+		5.f,
+		FColor::Green,
+		FString::Printf(TEXT("Item equipped. Damage increased by: %f"),
+			GetValue()));
+}
+
+void FInv_DamageModifier::OnUnequip(APlayerController* PC)
+{
+	GEngine->AddOnScreenDebugMessage(
+		-1,
+		5.f,
+		FColor::Red,
+		FString::Printf(TEXT("Item equipped. Damage increased by: %f"),
+			GetValue()));
+}
+
 void FInv_EquipmentFragment::OnEquip(APlayerController* PC)
 {
 	if (bEquipped) return;
