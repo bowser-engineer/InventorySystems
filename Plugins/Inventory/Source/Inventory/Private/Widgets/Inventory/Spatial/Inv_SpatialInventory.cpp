@@ -302,7 +302,8 @@ void UInv_SpatialInventory::ShowEquippedItemDescription(UInv_InventoryItem* Item
 	// It's not equipped, so find the equipped item with the same equipment type
 	auto FoundEquippedSlot = EquippedGridSlots.FindByPredicate([HoveredEquipmentType](const UInv_EquippedGridSlot* GridSlot)
 	{
-		return GridSlot->GetInventoryItem()->GetItemManifest().GetFragmentOfType<FInv_EquipmentFragment>()->GetEquipmentType() == HoveredEquipmentType;
+		UInv_InventoryItem* InventoryItem = GridSlot->GetInventoryItem().Get();
+		return IsValid(InventoryItem) ? InventoryItem->GetItemManifest().GetFragmentOfType<FInv_EquipmentFragment>()->GetEquipmentType() == HoveredEquipmentType : false ;
 	});
 	UInv_EquippedGridSlot* EquippedSlot = FoundEquippedSlot ? *FoundEquippedSlot : nullptr;
 	if (!IsValid(EquippedSlot)) return; // No equipped item with the same equipment type
