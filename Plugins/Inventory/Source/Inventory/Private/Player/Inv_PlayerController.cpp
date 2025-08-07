@@ -10,6 +10,7 @@
 #include "Items/Components/Inv_ItemComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Widgets/HUD/Inv_HUDWidget.h"
+#include "DrawDebugHelpers.h"
 
 AInv_PlayerController::AInv_PlayerController()
 {
@@ -96,7 +97,9 @@ void AInv_PlayerController::TraceForItem()
 
 	const FVector TraceEnd = TraceStart + Forward * TraceLength;
 	FHitResult HitResult;
+
 	GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ItemTraceChannel);
+	//DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Green, false, 0.1f, 0, 1.0f);
 
 	LastActor = ThisActor;
 	ThisActor = HitResult.GetActor();
