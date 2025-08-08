@@ -7,9 +7,9 @@ class UInv_InventoryItem;
 UENUM(BlueprintType)
 enum class EInv_ItemCategory : uint8
 {
-	Equippable,
-	Consumable,
-	Craftable,
+	Backpack,
+	Quiver,
+	Satchel,
 	None
 };
 

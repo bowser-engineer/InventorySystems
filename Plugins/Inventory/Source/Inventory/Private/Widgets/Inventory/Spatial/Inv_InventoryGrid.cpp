@@ -1008,5 +1008,7 @@ void UInv_InventoryGrid::OnInventoryMenuToggled(bool bOpen)
 
 bool UInv_InventoryGrid::MatchesCategory(const UInv_InventoryItem* Item) const
 {
+	// Check if Backpack then always accept
+	if (ItemCategory == EInv_ItemCategory::Backpack) return true;
 	return Item->GetItemManifest().GetItemCategory() == ItemCategory;
 }

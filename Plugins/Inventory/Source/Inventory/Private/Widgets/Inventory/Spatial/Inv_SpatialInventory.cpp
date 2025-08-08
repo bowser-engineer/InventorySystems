@@ -159,7 +159,8 @@ bool UInv_SpatialInventory::CanEquipHoverItem(UInv_EquippedGridSlot* EquippedGri
 
 	return HasHoverItem() && IsValid(HeldItem) &&
 		!HoverItem->IsStackable() &&
-			HeldItem->GetItemManifest().GetItemCategory() == EInv_ItemCategory::Equippable &&
+			// Previous iterations Checked if item goes into the Equipment bag
+			//HeldItem->GetItemManifest().GetItemCategory() == EInv_ItemCategory::Equippable &&
 				HeldItem->GetItemManifest().GetItemType().MatchesTag(EquipmentTypeTag);
 }
 
@@ -212,16 +213,16 @@ void UInv_SpatialInventory::BroadcastSlotClickedDelegates(UInv_InventoryItem* It
 	InventoryComponent->Server_EquipSlotClicked(ItemToEquip, ItemToUnequip);
 }
 
-FInv_SlotAvailabilityResult UInv_SpatialInventory::HasRoomForItem(UInv_ItemComponent* ItemComponent) const
+FInv_SlotAvailabilityResult UInv_SpatialInventory::HasRoomForItem(UInv_ItemComponent* ItemComponent, EInv_ItemCategory Category) const
 {
-	switch (UInv_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent))
+	switch (Category)
 	{
-		case EInv_ItemCategory::Equippable:
+		case EInv_ItemCategory::Backpack:
 			return Grid_Backpack->HasRoomForItem(ItemComponent);
-		case EInv_ItemCategory::Consumable:
+		case EInv_ItemCategory::Satchel:
 			return Grid_Satchel->HasRoomForItem(ItemComponent);
-		case EInv_ItemCategory::Craftable:
-			return Grid_Locked->HasRoomForItem(ItemComponent);
+		case EInv_ItemCategory::Quiver:
+			return Grid_Satchel->HasRoomForItem(ItemComponent);
 		default:
 			UE_LOG(LogInventory, Error, TEXT("ItemComponent doesn't have a valid Item Category."))
 			return FInv_SlotAvailabilityResult();

@@ -8,6 +8,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Items/Inv_InventoryItem.h"
 #include "Items/Fragments/Inv_ItemFragment.h"
+#include <InventoryManagement/Utils/Inv_InventoryStatics.h>
 
 
 UInv_InventoryComponent::UInv_InventoryComponent() : InventoryList(this)
@@ -27,15 +28,30 @@ void UInv_InventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 
 void UInv_InventoryComponent::TryAddItem(UInv_ItemComponent* ItemComponent)
 {
-	FInv_SlotAvailabilityResult Result = InventoryMenu->HasRoomForItem(ItemComponent);
+	EInv_ItemCategory ItemCategory = UInv_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent);
+	FInv_SlotAvailabilityResult Result = InventoryMenu->HasRoomForItem(ItemComponent, ItemCategory);
 
 	UInv_InventoryItem* FoundItem = InventoryList.FindFirstItemByType(ItemComponent->GetItemManifest().GetItemType());
 	Result.Item = FoundItem;
 
 	if (Result.TotalRoomToFill == 0)
 	{
-		NoRoomInInventory.Broadcast();
-		return;
+		// Early exit if there is no room for the item.
+		// but we should check if the item is not backpack and if it is then we should also check backpack instead of the perfered inventory grid
+		if(ItemCategory != EInv_ItemCategory::Backpack)
+		{
+			Result = InventoryMenu->HasRoomForItem(ItemComponent, EInv_ItemCategory::Backpack);
+			if (Result.TotalRoomToFill == 0)
+			{
+				NoRoomInInventory.Broadcast();
+				return;
+			}
+		}
+		else
+		{
+			NoRoomInInventory.Broadcast();
+			return;
+		}
 	}
 	
 	if (Result.Item.IsValid() && Result.bStackable)
@@ -54,7 +70,11 @@ void UInv_InventoryComponent::TryAddItem(UInv_ItemComponent* ItemComponent)
 
 void UInv_InventoryComponent::Server_AddNewItem_Implementation(UInv_ItemComponent* ItemComponent, int32 StackCount, int32 Remainder)
 {
+	// We need to know whether or not the item is being added to its inherited inventory grid or to the backpack.
+
+	// This just adds the item to the inventory list, which is a fast array.
 	UInv_InventoryItem* NewItem = InventoryList.AddEntry(ItemComponent);
+	
 	NewItem->SetTotalStackCount(StackCount);
 
 	if (GetOwner()->GetNetMode() == NM_ListenServer || GetOwner()->GetNetMode() == NM_Standalone)
