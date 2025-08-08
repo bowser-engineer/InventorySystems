@@ -654,13 +654,26 @@ UInv_HoverItem* UInv_InventoryGrid::GetHoverItem() const
 	return HoverItem;
 }
 
+/*
+We want to check if the item being added has already been added to a different grid.
+We should do this before actually calling add item though.
+*/
+
 void UInv_InventoryGrid::AddItem(UInv_InventoryItem* Item)
 {
-	if (!MatchesCategory(Item)) return;
+	if (!MatchesCategory(Item)) 
+	{
+		UE_LOG(LogInventory, Warning, TEXT("Item %s does not match the category of this inventory grid."),
+			*UEnum::GetValueAsString(Item->GetItemManifest().GetItemCategory()));
+
+		return;
+	}
 
 	FInv_SlotAvailabilityResult Result = HasRoomForItem(Item);
 	AddItemToIndices(Result, Item);	
 }
+
+
 
 void UInv_InventoryGrid::AddItemToIndices(const FInv_SlotAvailabilityResult& Result, UInv_InventoryItem* NewItem)
 {
@@ -1008,7 +1021,7 @@ void UInv_InventoryGrid::OnInventoryMenuToggled(bool bOpen)
 
 bool UInv_InventoryGrid::MatchesCategory(const UInv_InventoryItem* Item) const
 {
-	// Check if Backpack then always accept
-	if (ItemCategory == EInv_ItemCategory::Backpack) return true;
+	UE_LOG(LogInventory, Warning, TEXT("Matching %s"),
+		*UEnum::GetValueAsString(Item->GetItemManifest().GetItemCategory()));
 	return Item->GetItemManifest().GetItemCategory() == ItemCategory;
 }

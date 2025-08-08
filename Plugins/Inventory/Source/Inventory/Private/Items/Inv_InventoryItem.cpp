@@ -27,5 +27,5 @@ bool UInv_InventoryItem::IsStackable() const
 
 bool UInv_InventoryItem::IsConsumable() const
 {
-	return GetItemManifest().GetItemCategory() == EInv_ItemCategory::Satchel;
+	return GetItemManifest().GetPreferredItemCategory() == EInv_ItemCategory::Satchel;
 }

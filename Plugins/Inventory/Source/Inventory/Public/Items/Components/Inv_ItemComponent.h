@@ -22,6 +22,8 @@ public:
 	FInv_ItemManifest& GetItemManifestMutable() { return ItemManifest; }
 	FString GetPickupMessage() const { return PickupMessage; }
 	void PickedUp();
+
+	void SetItemCategory(EInv_ItemCategory Category);
 protected:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory")

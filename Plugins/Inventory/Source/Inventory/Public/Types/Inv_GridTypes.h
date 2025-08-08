@@ -10,6 +10,7 @@ enum class EInv_ItemCategory : uint8
 	Backpack,
 	Quiver,
 	Satchel,
+	Locked,
 	None
 };
 

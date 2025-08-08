@@ -213,9 +213,9 @@ void UInv_SpatialInventory::BroadcastSlotClickedDelegates(UInv_InventoryItem* It
 	InventoryComponent->Server_EquipSlotClicked(ItemToEquip, ItemToUnequip);
 }
 
-FInv_SlotAvailabilityResult UInv_SpatialInventory::HasRoomForItem(UInv_ItemComponent* ItemComponent, EInv_ItemCategory Category) const
+FInv_SlotAvailabilityResult UInv_SpatialInventory::HasRoomForItem(UInv_ItemComponent* ItemComponent) const
 {
-	switch (Category)
+	switch (UInv_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent))
 	{
 		case EInv_ItemCategory::Backpack:
 			return Grid_Backpack->HasRoomForItem(ItemComponent);

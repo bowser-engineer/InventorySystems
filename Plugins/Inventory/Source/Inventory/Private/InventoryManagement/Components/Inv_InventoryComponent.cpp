@@ -28,32 +28,49 @@ void UInv_InventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 
 void UInv_InventoryComponent::TryAddItem(UInv_ItemComponent* ItemComponent)
 {
-	EInv_ItemCategory ItemCategory = UInv_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent);
-	FInv_SlotAvailabilityResult Result = InventoryMenu->HasRoomForItem(ItemComponent, ItemCategory);
+	TArray<EInv_ItemCategory> CategoriesToTry;
 
-	UInv_InventoryItem* FoundItem = InventoryList.FindFirstItemByType(ItemComponent->GetItemManifest().GetItemType());
-	Result.Item = FoundItem;
+	EInv_ItemCategory ItemCategory = UInv_InventoryStatics::GetPreferredItemCategoryFromItemComp(ItemComponent);
 
-	if (Result.TotalRoomToFill == 0)
+	// Always try the preferred category first
+	CategoriesToTry.Add(ItemCategory);
+
+	// If preferred is not backpack or locked, add backpack and locked as fallback
+	if (ItemCategory != EInv_ItemCategory::Backpack && ItemCategory != EInv_ItemCategory::Locked)
 	{
-		// Early exit if there is no room for the item.
-		// but we should check if the item is not backpack and if it is then we should also check backpack instead of the perfered inventory grid
-		if(ItemCategory != EInv_ItemCategory::Backpack)
-		{
-			Result = InventoryMenu->HasRoomForItem(ItemComponent, EInv_ItemCategory::Backpack);
-			if (Result.TotalRoomToFill == 0)
-			{
-				NoRoomInInventory.Broadcast();
-				return;
-			}
-		}
-		else
-		{
-			NoRoomInInventory.Broadcast();
-			return;
-		}
+		CategoriesToTry.Add(EInv_ItemCategory::Backpack);
+		CategoriesToTry.Add(EInv_ItemCategory::Locked);
 	}
-	
+
+	FInv_SlotAvailabilityResult Result;
+	UInv_InventoryItem* FoundItem = nullptr;
+	bool bFoundRoom = false;
+
+	for (EInv_ItemCategory Category : CategoriesToTry)
+	{
+		// we want to now set ItemComponent's ItemCategory to the one we found room for. But also set Item Manifest's category.
+		ItemComponent->SetItemCategory(Category);
+
+		UE_LOG(LogTemp, Warning, TEXT("Set Item Component Category to %s"), *UEnum::GetValueAsString(UInv_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent)));
+
+		Result = InventoryMenu->HasRoomForItem(ItemComponent);
+		FoundItem = InventoryList.FindFirstItemByType(ItemComponent->GetItemManifest().GetItemType());
+		Result.Item = FoundItem;
+
+		if (Result.TotalRoomToFill > 0)
+		{
+			bFoundRoom = true;
+			break;
+		}
+
+	}
+
+	if (!bFoundRoom)
+	{
+		NoRoomInInventory.Broadcast();
+		return;
+	}
+
 	if (Result.Item.IsValid() && Result.bStackable)
 	{
 		// Add stacks to an item that already exists in the inventory. We only want to update the stack count,
@@ -70,15 +87,16 @@ void UInv_InventoryComponent::TryAddItem(UInv_ItemComponent* ItemComponent)
 
 void UInv_InventoryComponent::Server_AddNewItem_Implementation(UInv_ItemComponent* ItemComponent, int32 StackCount, int32 Remainder)
 {
-	// We need to know whether or not the item is being added to its inherited inventory grid or to the backpack.
-
 	// This just adds the item to the inventory list, which is a fast array.
 	UInv_InventoryItem* NewItem = InventoryList.AddEntry(ItemComponent);
+
+	UE_LOG(LogTemp, Warning, TEXT("Added %s Category"), *UEnum::GetValueAsString(UInv_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent)));
 	
 	NewItem->SetTotalStackCount(StackCount);
 
 	if (GetOwner()->GetNetMode() == NM_ListenServer || GetOwner()->GetNetMode() == NM_Standalone)
 	{
+		// This calls a delegate that will update all the grids that are listening to this inventory component. But we only want to add it to a specific grid.
 		OnItemAdded.Broadcast(NewItem);
 	}
 
@@ -237,4 +255,9 @@ void UInv_InventoryComponent::CloseInventoryMenu()
 	FInputModeGameOnly InputMode;
 	OwningController->SetInputMode(InputMode);
 	OwningController->SetShowMouseCursor(false);
+}
+
+void UInv_ItemComponent::SetItemCategory(EInv_ItemCategory Category)
+{
+	ItemManifest.SetItemCategory(Category);
 }

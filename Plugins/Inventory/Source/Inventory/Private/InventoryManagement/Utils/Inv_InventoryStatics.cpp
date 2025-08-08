@@ -15,10 +15,22 @@ UInv_InventoryComponent* UInv_InventoryStatics::GetInventoryComponent(const APla
 	return InventoryComponent;
 }
 
+EInv_ItemCategory UInv_InventoryStatics::GetPreferredItemCategoryFromItemComp(UInv_ItemComponent* ItemComp)
+{
+	if (!IsValid(ItemComp)) return EInv_ItemCategory::None;
+	return ItemComp->GetItemManifest().GetPreferredItemCategory();
+}
+
 EInv_ItemCategory UInv_InventoryStatics::GetItemCategoryFromItemComp(UInv_ItemComponent* ItemComp)
 {
 	if (!IsValid(ItemComp)) return EInv_ItemCategory::None;
 	return ItemComp->GetItemManifest().GetItemCategory();
+}
+
+void UInv_InventoryStatics::SetItemCategoryFromItemComp(UInv_ItemComponent* ItemComp, EInv_ItemCategory Category)
+{
+	if (!IsValid(ItemComp)) return;
+	ItemComp->SetItemCategory(Category);
 }
 
 void UInv_InventoryStatics::ItemHovered(APlayerController* PC, UInv_InventoryItem* Item)

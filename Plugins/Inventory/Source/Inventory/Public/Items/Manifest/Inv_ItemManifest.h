@@ -23,10 +23,11 @@ struct INVENTORY_API FInv_ItemManifest
 
 	TArray<TInstancedStruct<FInv_ItemFragment>>& GetFragmentsMutable() { return Fragments; }
 	UInv_InventoryItem* Manifest(UObject* NewOuter);
+	EInv_ItemCategory GetPreferredItemCategory() const { return PreferredItemCategory; }
 	EInv_ItemCategory GetItemCategory() const { return ItemCategory; }
 	FGameplayTag GetItemType() const { return ItemType; }
 	void AssimilateInventoryFragments(UInv_CompositeBase* Composite) const;
-
+	void SetItemCategory(EInv_ItemCategory Category) { ItemCategory = Category; }
 	template<typename T> requires std::derived_from<T, FInv_ItemFragment>
 	const T* GetFragmentOfTypeWithTag(const FGameplayTag& FragmentTag) const;
 
@@ -47,7 +48,9 @@ private:
 	TArray<TInstancedStruct<FInv_ItemFragment>> Fragments;
 
 	UPROPERTY(EditAnywhere, Category = "Inventory")
-	EInv_ItemCategory ItemCategory{EInv_ItemCategory::None};
+	EInv_ItemCategory PreferredItemCategory{EInv_ItemCategory::None};
+
+	EInv_ItemCategory ItemCategory{ EInv_ItemCategory::None };
 
 	UPROPERTY(EditAnywhere, Category = "Inventory", meta = (Categories="GameItems"))
 	FGameplayTag ItemType;
