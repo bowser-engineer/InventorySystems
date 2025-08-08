@@ -40,26 +40,18 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCanvasPanel> CanvasPanel;
 
+	// Declare the grids for different inventory sections
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWidgetSwitcher> Switcher;
+	TObjectPtr<UInv_InventoryGrid> Grid_Backpack;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UInv_InventoryGrid> Grid_Equippables;
+	TObjectPtr<UInv_InventoryGrid> Grid_Satchel;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UInv_InventoryGrid> Grid_Consumables;
+	TObjectPtr<UInv_InventoryGrid> Grid_Locked;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UInv_InventoryGrid> Grid_Craftables;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> Button_Equippables;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> Button_Consumables;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> Button_Craftables;
+	TObjectPtr<UInv_InventoryGrid> Grid_Quiver;
 
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	TSubclassOf<UInv_ItemDescription> ItemDescriptionClass;
@@ -89,22 +81,12 @@ private:
 	UInv_ItemDescription* GetEquippedItemDescription();
 
 	UFUNCTION()
-	void ShowEquippables();
-
-	UFUNCTION()
-	void ShowConsumables();
-
-	UFUNCTION()
-	void ShowCraftables();
-
-	UFUNCTION()
 	void EquippedGridSlotClicked(UInv_EquippedGridSlot* EquippedGridSlot, const FGameplayTag& EquipmentTypeTag);
 
 	UFUNCTION()
 	void EquippedSlottedItemClicked(UInv_EquippedSlottedItem* EquippedSlottedItem);
 	
 	void DisableButton(UButton* Button);
-	void SetActiveGrid(UInv_InventoryGrid* Grid, UButton* Button);
 	void SetItemDescriptionSizeAndPosition(UInv_ItemDescription* Description, UCanvasPanel* Canvas) const;
 	void SetEquippedItemDescriptionSizeAndPosition(UInv_ItemDescription* Description, UInv_ItemDescription* EquippedDescription, UCanvasPanel* Canvas) const;
 	bool CanEquipHoverItem(UInv_EquippedGridSlot* EquippedGridSlot, const FGameplayTag& EquipmentTypeTag) const;

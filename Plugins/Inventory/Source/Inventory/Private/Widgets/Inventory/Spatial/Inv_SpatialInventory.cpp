@@ -25,15 +25,9 @@ void UInv_SpatialInventory::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
-	Button_Equippables->OnClicked.AddDynamic(this, &ThisClass::ShowEquippables);
-	Button_Consumables->OnClicked.AddDynamic(this, &ThisClass::ShowConsumables);
-	Button_Craftables->OnClicked.AddDynamic(this, &ThisClass::ShowCraftables);
-
-	Grid_Equippables->SetOwningCanvas(CanvasPanel);
-	Grid_Consumables->SetOwningCanvas(CanvasPanel);
-	Grid_Craftables->SetOwningCanvas(CanvasPanel);
-
-	ShowEquippables();
+	Grid_Backpack->SetOwningCanvas(CanvasPanel);
+	Grid_Satchel->SetOwningCanvas(CanvasPanel);
+	Grid_Locked->SetOwningCanvas(CanvasPanel);
 
 	WidgetTree->ForEachWidget([this](UWidget* Widget)
 	{
@@ -69,7 +63,7 @@ void UInv_SpatialInventory::EquippedGridSlotClicked(UInv_EquippedGridSlot* Equip
 	InventoryComponent->Server_EquipSlotClicked(HoverItem->GetInventoryItem(), nullptr);
 	
 	// Clear the Hover Item
-	Grid_Equippables->ClearHoverItem();
+	Grid_Backpack->ClearHoverItem();
 }
 
 void UInv_SpatialInventory::EquippedSlottedItemClicked(UInv_EquippedSlottedItem* EquippedSlottedItem)
@@ -92,7 +86,7 @@ void UInv_SpatialInventory::EquippedSlottedItemClicked(UInv_EquippedSlottedItem*
 	ClearSlotOfItem(EquippedGridSlot);
 
 	// Assign previously equipped item as the hover item
-	Grid_Equippables->AssignHoverItem(ItemToUnequip);
+	Grid_Backpack->AssignHoverItem(ItemToUnequip);
 	
 	// Remove of the equipped slotted item from the equipped grid slot
 	RemoveEquippedSlottedItem(EquippedSlottedItem);
@@ -223,11 +217,11 @@ FInv_SlotAvailabilityResult UInv_SpatialInventory::HasRoomForItem(UInv_ItemCompo
 	switch (UInv_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent))
 	{
 		case EInv_ItemCategory::Equippable:
-			return Grid_Equippables->HasRoomForItem(ItemComponent);
+			return Grid_Backpack->HasRoomForItem(ItemComponent);
 		case EInv_ItemCategory::Consumable:
-			return Grid_Consumables->HasRoomForItem(ItemComponent);
+			return Grid_Satchel->HasRoomForItem(ItemComponent);
 		case EInv_ItemCategory::Craftable:
-			return Grid_Craftables->HasRoomForItem(ItemComponent);
+			return Grid_Locked->HasRoomForItem(ItemComponent);
 		default:
 			UE_LOG(LogInventory, Error, TEXT("ItemComponent doesn't have a valid Item Category."))
 			return FInv_SlotAvailabilityResult();
@@ -268,9 +262,9 @@ void UInv_SpatialInventory::OnItemUnHovered()
 
 bool UInv_SpatialInventory::HasHoverItem() const
 {
-	if (Grid_Equippables->HasHoverItem()) return true;
-	if (Grid_Consumables->HasHoverItem()) return true;
-	if (Grid_Craftables->HasHoverItem()) return true;
+	if (Grid_Backpack->HasHoverItem()) return true;
+	if (Grid_Satchel->HasHoverItem()) return true;
+	if (Grid_Locked->HasHoverItem()) return true;
 	return false;
 }
 
@@ -282,7 +276,7 @@ UInv_HoverItem* UInv_SpatialInventory::GetHoverItem() const
 
 float UInv_SpatialInventory::GetTileSize() const
 {
-	return Grid_Equippables->GetTileSize();
+	return Grid_Backpack->GetTileSize();
 }
 
 void UInv_SpatialInventory::ShowEquippedItemDescription(UInv_InventoryItem* Item)
@@ -340,40 +334,3 @@ UInv_ItemDescription* UInv_SpatialInventory::GetEquippedItemDescription()
 	}
 	return EquippedItemDescription;
 }
-
-void UInv_SpatialInventory::ShowEquippables()
-{
-	SetActiveGrid(Grid_Equippables, Button_Equippables);
-}
-
-void UInv_SpatialInventory::ShowConsumables()
-{
-	SetActiveGrid(Grid_Consumables, Button_Consumables);
-}
-
-void UInv_SpatialInventory::ShowCraftables()
-{
-	SetActiveGrid(Grid_Craftables, Button_Craftables);
-}
-
-void UInv_SpatialInventory::DisableButton(UButton* Button)
-{
-	Button_Equippables->SetIsEnabled(true);
-	Button_Consumables->SetIsEnabled(true);
-	Button_Craftables->SetIsEnabled(true);
-	Button->SetIsEnabled(false);
-}
-
-void UInv_SpatialInventory::SetActiveGrid(UInv_InventoryGrid* Grid, UButton* Button)
-{
-	if (ActiveGrid.IsValid())
-	{
-		ActiveGrid->HideCursor();
-		ActiveGrid->OnHide();
-	}
-	ActiveGrid = Grid;
-	if (ActiveGrid.IsValid()) ActiveGrid->ShowCursor();
-	DisableButton(Button);
-	Switcher->SetActiveWidget(Grid);
-}
-
