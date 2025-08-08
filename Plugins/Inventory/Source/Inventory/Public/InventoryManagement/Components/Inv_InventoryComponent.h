@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "InventoryManagement/FastArray/Inv_FastArray.h"
+#include <Types/Inv_GridTypes.h>
 #include "Inv_InventoryComponent.generated.h"
 
 class UInv_ItemComponent;
@@ -30,6 +31,9 @@ public:
 	void TryAddItem(UInv_ItemComponent* ItemComponent);
 
 	UFUNCTION(Server, Reliable)
+	void Server_SetItemCategory(UInv_ItemComponent* ItemComponent, EInv_ItemCategory Category);
+
+	UFUNCTION(Server, Reliable)
 	void Server_AddNewItem(UInv_ItemComponent* ItemComponent, int32 StackCount, int32 Remainder);
 
 	UFUNCTION(Server, Reliable)
@@ -40,7 +44,7 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Server_ConsumeItem(UInv_InventoryItem* Item);
-
+	
 	UFUNCTION(Server, Reliable)
 	void Server_EquipSlotClicked(UInv_InventoryItem* ItemToEquip, UInv_InventoryItem* ItemToUnequip);
 

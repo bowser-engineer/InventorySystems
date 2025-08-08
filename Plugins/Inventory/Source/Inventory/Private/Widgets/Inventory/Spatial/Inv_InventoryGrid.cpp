@@ -654,11 +654,6 @@ UInv_HoverItem* UInv_InventoryGrid::GetHoverItem() const
 	return HoverItem;
 }
 
-/*
-We want to check if the item being added has already been added to a different grid.
-We should do this before actually calling add item though.
-*/
-
 void UInv_InventoryGrid::AddItem(UInv_InventoryItem* Item)
 {
 	if (!MatchesCategory(Item)) 

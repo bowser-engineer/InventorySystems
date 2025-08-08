@@ -29,13 +29,8 @@ void UInv_InventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 void UInv_InventoryComponent::TryAddItem(UInv_ItemComponent* ItemComponent)
 {
 	TArray<EInv_ItemCategory> CategoriesToTry;
-
 	EInv_ItemCategory ItemCategory = UInv_InventoryStatics::GetPreferredItemCategoryFromItemComp(ItemComponent);
-
-	// Always try the preferred category first
 	CategoriesToTry.Add(ItemCategory);
-
-	// If preferred is not backpack or locked, add backpack and locked as fallback
 	if (ItemCategory != EInv_ItemCategory::Backpack && ItemCategory != EInv_ItemCategory::Locked)
 	{
 		CategoriesToTry.Add(EInv_ItemCategory::Backpack);
@@ -45,24 +40,21 @@ void UInv_InventoryComponent::TryAddItem(UInv_ItemComponent* ItemComponent)
 	FInv_SlotAvailabilityResult Result;
 	UInv_InventoryItem* FoundItem = nullptr;
 	bool bFoundRoom = false;
+	EInv_ItemCategory ValidCategory = EInv_ItemCategory::Backpack; // Default fallback
 
 	for (EInv_ItemCategory Category : CategoriesToTry)
 	{
-		// we want to now set ItemComponent's ItemCategory to the one we found room for. But also set Item Manifest's category.
+		// Test locally first (don't call server yet)
 		ItemComponent->SetItemCategory(Category);
-
-		UE_LOG(LogTemp, Warning, TEXT("Set Item Component Category to %s"), *UEnum::GetValueAsString(UInv_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent)));
-
 		Result = InventoryMenu->HasRoomForItem(ItemComponent);
 		FoundItem = InventoryList.FindFirstItemByType(ItemComponent->GetItemManifest().GetItemType());
 		Result.Item = FoundItem;
-
 		if (Result.TotalRoomToFill > 0)
 		{
+			ValidCategory = Category;
 			bFoundRoom = true;
 			break;
 		}
-
 	}
 
 	if (!bFoundRoom)
@@ -71,25 +63,33 @@ void UInv_InventoryComponent::TryAddItem(UInv_ItemComponent* ItemComponent)
 		return;
 	}
 
+	// NOW set the category on the server with the category we know works
+	Server_SetItemCategory(ItemComponent, ValidCategory);
+
 	if (Result.Item.IsValid() && Result.bStackable)
 	{
-		// Add stacks to an item that already exists in the inventory. We only want to update the stack count,
-		// not create a new item of this type.
 		OnStackChange.Broadcast(Result);
 		Server_AddStacksToItem(ItemComponent, Result.TotalRoomToFill, Result.Remainder);
 	}
 	else if (Result.TotalRoomToFill > 0)
 	{
-		// This item type doesn't exist in the inventory. Create a new one and update all pertinent slots.
 		Server_AddNewItem(ItemComponent, Result.bStackable ? Result.TotalRoomToFill : 0, Result.Remainder);
 	}
 }
+
+void UInv_InventoryComponent::Server_SetItemCategory_Implementation(UInv_ItemComponent* ItemComponent, EInv_ItemCategory Category)
+{
+	ItemComponent->SetItemCategory(Category);
+	UE_LOG(LogTemp, Warning, TEXT("Set Item Component Category to %s"), *UEnum::GetValueAsString(UInv_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent)));
+}
+
 
 void UInv_InventoryComponent::Server_AddNewItem_Implementation(UInv_ItemComponent* ItemComponent, int32 StackCount, int32 Remainder)
 {
 	// This just adds the item to the inventory list, which is a fast array.
 	UInv_InventoryItem* NewItem = InventoryList.AddEntry(ItemComponent);
 
+	// Check NewItems manifest is correct. We should see the item component's category.
 	UE_LOG(LogTemp, Warning, TEXT("Added %s Category"), *UEnum::GetValueAsString(UInv_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent)));
 	
 	NewItem->SetTotalStackCount(StackCount);
