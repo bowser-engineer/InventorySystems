@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Net/Serialization/FastArraySerializer.h"
-
+#include <Types/Inv_GridTypes.h>
 #include "Inv_FastArray.generated.h"
 
 struct FGameplayTag;
@@ -51,6 +51,9 @@ struct FInv_InventoryFastArray : public FFastArraySerializer
 	UInv_InventoryItem* AddEntry(UInv_InventoryItem* Item);
 	void RemoveEntry(UInv_InventoryItem* Item);
 	UInv_InventoryItem* FindFirstItemByType(const FGameplayTag& ItemType);
+
+	UInv_InventoryItem* FindFirstItemByTypeInCategory(const FGameplayTag& ItemType, EInv_ItemCategory Category);
+
 
 private:
 	friend UInv_InventoryComponent;

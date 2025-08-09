@@ -95,3 +95,16 @@ UInv_InventoryItem* FInv_InventoryFastArray::FindFirstItemByType(const FGameplay
 	});
 	return FoundItem ? FoundItem->Item : nullptr;
 }
+
+UInv_InventoryItem* FInv_InventoryFastArray::FindFirstItemByTypeInCategory(const FGameplayTag& ItemType, EInv_ItemCategory Category)
+{
+	auto* FoundItem = Entries.FindByPredicate([ItemType, Category](const FInv_InventoryEntry& Entry)
+		{
+			if (!IsValid(Entry.Item))
+				return false;
+
+			return Entry.Item->GetItemManifest().GetItemType().MatchesTagExact(ItemType) && 
+				Entry.Item->GetItemManifest().GetItemCategory() == Category;
+		});
+	return FoundItem ? FoundItem->Item : nullptr;
+}

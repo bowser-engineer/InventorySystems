@@ -656,17 +656,8 @@ UInv_HoverItem* UInv_InventoryGrid::GetHoverItem() const
 
 void UInv_InventoryGrid::AddItem(UInv_InventoryItem* Item)
 {
-	// Log immediately when grid receives the item
-	UE_LOG(LogInventory, Warning, TEXT("Grid received item with category: %s (Grid expects: %s)"),
-		*UEnum::GetValueAsString(Item->GetItemManifest().GetItemCategory()),
-		*UEnum::GetValueAsString(ItemCategory));
-
-	if (!MatchesCategory(Item))
-	{
-		UE_LOG(LogInventory, Warning, TEXT("Item %s does not match the category of this inventory grid."),
-			*UEnum::GetValueAsString(Item->GetItemManifest().GetItemCategory()));
-		return;
-	}
+	if (!MatchesCategory(Item))	return;
+	
 	FInv_SlotAvailabilityResult Result = HasRoomForItem(Item);
 	AddItemToIndices(Result, Item);	
 }
@@ -1017,6 +1008,7 @@ void UInv_InventoryGrid::OnInventoryMenuToggled(bool bOpen)
 
 bool UInv_InventoryGrid::MatchesCategory(const UInv_InventoryItem* Item) const
 {
+	if(!IsValid(Item)) return false;
 	UE_LOG(LogInventory, Warning, TEXT("Matching %s"),
 		*UEnum::GetValueAsString(Item->GetItemManifest().GetItemCategory()));
 	return Item->GetItemManifest().GetItemCategory() == ItemCategory;
