@@ -31,13 +31,10 @@ public:
 	void TryAddItem(UInv_ItemComponent* ItemComponent);
 
 	UFUNCTION(Server, Reliable)
-	void Server_SetItemCategory(UInv_ItemComponent* ItemComponent, EInv_ItemCategory Category);
+	void Server_AddNewItem(UInv_ItemComponent* ItemComponent, EInv_ItemCategory Category, int32 StackCount, int32 Remainder);
 
 	UFUNCTION(Server, Reliable)
-	void Server_AddNewItem(UInv_ItemComponent* ItemComponent, int32 StackCount, int32 Remainder);
-
-	UFUNCTION(Server, Reliable)
-	void Server_AddStacksToItem(UInv_ItemComponent* ItemComponent, int32 StackCount, int32 Remainder);
+	void Server_AddStacksToItem(UInv_ItemComponent* ItemComponent, EInv_ItemCategory Category, int32 StacksToAdd, int32 Remainder);
 
 	UFUNCTION(Server, Reliable)
 	void Server_DropItem(UInv_InventoryItem* Item, int32 StackCount);
@@ -50,6 +47,9 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_EquipSlotClicked(UInv_InventoryItem* ItemToEquip, UInv_InventoryItem* ItemToUnequip);
+
+	UFUNCTION(Client, Reliable)
+	void Client_UpdateItemCategory(UInv_InventoryItem* Item, EInv_ItemCategory Category);
 
 	void ToggleInventoryMenu();
 	void AddRepSubObj(UObject* SubObj);

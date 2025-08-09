@@ -25,7 +25,7 @@ void UInv_InventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 
 	DOREPLIFETIME(ThisClass, InventoryList);
 }
-
+// Updated TryAddItem method - remove the separate Server_SetItemCategory call
 void UInv_InventoryComponent::TryAddItem(UInv_ItemComponent* ItemComponent)
 {
 	TArray<EInv_ItemCategory> CategoriesToTry;
@@ -63,35 +63,27 @@ void UInv_InventoryComponent::TryAddItem(UInv_ItemComponent* ItemComponent)
 		return;
 	}
 
-	// NOW set the category on the server with the category we know works
-	Server_SetItemCategory(ItemComponent, ValidCategory);
-
+	// Pass the ValidCategory directly to the server functions
 	if (Result.Item.IsValid() && Result.bStackable)
 	{
 		OnStackChange.Broadcast(Result);
-		Server_AddStacksToItem(ItemComponent, Result.TotalRoomToFill, Result.Remainder);
+		Server_AddStacksToItem(ItemComponent, ValidCategory, Result.TotalRoomToFill, Result.Remainder);
 	}
 	else if (Result.TotalRoomToFill > 0)
 	{
-		Server_AddNewItem(ItemComponent, Result.bStackable ? Result.TotalRoomToFill : 0, Result.Remainder);
+		Server_AddNewItem(ItemComponent, ValidCategory, Result.bStackable ? Result.TotalRoomToFill : 0, Result.Remainder);
 	}
 }
 
-void UInv_InventoryComponent::Server_SetItemCategory_Implementation(UInv_ItemComponent* ItemComponent, EInv_ItemCategory Category)
+// Updated Server_AddNewItem to accept category parameter
+void UInv_InventoryComponent::Server_AddNewItem_Implementation(UInv_ItemComponent* ItemComponent, EInv_ItemCategory Category, int32 StackCount, int32 Remainder)
 {
+	// Set the category first to ensure it's correct before adding to inventory
 	ItemComponent->SetItemCategory(Category);
-	UE_LOG(LogTemp, Warning, TEXT("Set Item Component Category to %s"), *UEnum::GetValueAsString(UInv_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent)));
-}
 
-
-void UInv_InventoryComponent::Server_AddNewItem_Implementation(UInv_ItemComponent* ItemComponent, int32 StackCount, int32 Remainder)
-{
 	// This just adds the item to the inventory list, which is a fast array.
 	UInv_InventoryItem* NewItem = InventoryList.AddEntry(ItemComponent);
 
-	// Check NewItems manifest is correct. We should see the item component's category.
-	UE_LOG(LogTemp, Warning, TEXT("Added %s Category"), *UEnum::GetValueAsString(UInv_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent)));
-	
 	NewItem->SetTotalStackCount(StackCount);
 
 	if (GetOwner()->GetNetMode() == NM_ListenServer || GetOwner()->GetNetMode() == NM_Standalone)
@@ -110,13 +102,30 @@ void UInv_InventoryComponent::Server_AddNewItem_Implementation(UInv_ItemComponen
 	}
 }
 
-void UInv_InventoryComponent::Server_AddStacksToItem_Implementation(UInv_ItemComponent* ItemComponent, int32 StackCount, int32 Remainder)
+// Updated Server_AddStacksToItem to also accept category parameter (if needed)
+void UInv_InventoryComponent::Server_AddStacksToItem_Implementation(UInv_ItemComponent* ItemComponent, EInv_ItemCategory Category, int32 StacksToAdd, int32 Remainder)
 {
-	const FGameplayTag& ItemType = IsValid(ItemComponent) ? ItemComponent->GetItemManifest().GetItemType() : FGameplayTag::EmptyTag;
-	UInv_InventoryItem* Item = InventoryList.FindFirstItemByType(ItemType);
-	if (!IsValid(Item)) return;
+	// Set the category to ensure consistency
+	ItemComponent->SetItemCategory(Category);
 
-	Item->SetTotalStackCount(Item->GetTotalStackCount() + StackCount);
+	// Log for verification
+	UE_LOG(LogTemp, Warning, TEXT("Adding stacks to existing item with category: %s"), *UEnum::GetValueAsString(Category));
+
+	// Find the existing item in the inventory
+	UInv_InventoryItem* ExistingItem = InventoryList.FindFirstItemByType(ItemComponent->GetItemManifest().GetItemType());
+
+	if (ExistingItem)
+	{
+		// Add the stacks to the existing item
+		int32 CurrentStacks = ExistingItem->GetTotalStackCount();
+		ExistingItem->SetTotalStackCount(CurrentStacks + StacksToAdd);
+
+		// Broadcast the change
+		if (GetOwner()->GetNetMode() == NM_ListenServer || GetOwner()->GetNetMode() == NM_Standalone)
+		{
+			OnStackChange.Broadcast(FInv_SlotAvailabilityResult()); // You may need to construct this properly
+		}
+	}
 
 	if (Remainder == 0)
 	{
@@ -125,6 +134,15 @@ void UInv_InventoryComponent::Server_AddStacksToItem_Implementation(UInv_ItemCom
 	else if (FInv_StackableFragment* StackableFragment = ItemComponent->GetItemManifestMutable().GetFragmentOfTypeMutable<FInv_StackableFragment>())
 	{
 		StackableFragment->SetStackCount(Remainder);
+	}
+}
+
+void UInv_InventoryComponent::Client_UpdateItemCategory_Implementation(UInv_InventoryItem* Item, EInv_ItemCategory Category)
+{
+	if (Item)
+	{
+		auto& MutableManifest = Item->GetItemManifestMutable();
+		MutableManifest.SetItemCategory(Category);
 	}
 }
 
