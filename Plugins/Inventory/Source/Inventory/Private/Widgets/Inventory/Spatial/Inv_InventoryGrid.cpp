@@ -196,14 +196,7 @@ void UInv_InventoryGrid::UnHighlightSlots(const int32 Index, const FIntPoint& Di
 {
 	UInv_InventoryStatics::ForEach2D(GridSlots, Index, Dimensions, Columns, [&](UInv_GridSlot* GridSlot)
 	{
-		if (GridSlot->IsAvailable())
-		{
-			GridSlot->SetUnoccupiedTexture();
-		}
-		else
-		{
-			GridSlot->SetOccupiedTexture();
-		}
+		GridSlot->SetUnoccupiedTexture();
 	});
 }
 
@@ -722,29 +715,23 @@ void UInv_InventoryGrid::DropItem()
 {
 	UInv_InventoryGrid* GridWithHoverItem = GetGridWithHoverItem(this);
 
-	if (!GridWithHoverItem)
-	{
-		UE_LOG(LogInventory, Warning, TEXT("DropItem: No grid has a hover item"));
-		return;
-	}
+	if (!GridWithHoverItem) return;
 
 	UInv_HoverItem* ActualHoverItem = GridWithHoverItem->GetHoverItem();
-	if (!IsValid(ActualHoverItem))
-	{
-		UE_LOG(LogInventory, Warning, TEXT("DropItem: Hover item widget is invalid"));
-		return;
-	}
+	if (!IsValid(ActualHoverItem)) return;
+	
 
 	UInv_InventoryItem* InventoryItem = ActualHoverItem->GetInventoryItem();
 	if (!IsValid(InventoryItem))
 	{
-		UE_LOG(LogInventory, Warning, TEXT("DropItem: Hover item has no valid inventory item"));
 		GridWithHoverItem->ClearHoverItem();
 		return;
 	}
 
 	// Now we can safely access the hover item data
 	const int32 StackCount = ActualHoverItem->GetStackCount();
+
+	InventoryComponent->Server_DropItem(HoverItem->GetInventoryItem(), HoverItem->GetStackCount());
 
 	// Clear the hover item from the correct grid (not necessarily this one)
 	GridWithHoverItem->ClearHoverItem();
