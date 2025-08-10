@@ -20,11 +20,15 @@
 #include "Widgets/Inventory/SlottedItems/Inv_SlottedItem.h"
 #include "Widgets/ItemPopUp/Inv_ItemPopUp.h"
 
+// Static member definition (add at top of .cpp file)
+TArray<TWeakObjectPtr<UInv_InventoryGrid>> UInv_InventoryGrid::RegisteredGrids;
+
 void UInv_InventoryGrid::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
 	ConstructGrid();
+	RegisterGrid(); // Register this grid for cross-grid operations
 
 	InventoryComponent = UInv_InventoryStatics::GetInventoryComponent(GetOwningPlayer());
 	InventoryComponent->OnItemAdded.AddDynamic(this, &ThisClass::AddItem);
@@ -32,6 +36,20 @@ void UInv_InventoryGrid::NativeOnInitialized()
 	InventoryComponent->OnInventoryMenuToggled.AddDynamic(this, &ThisClass::OnInventoryMenuToggled);
 }
 
+// Modified NativeDestruct (add this override)
+void UInv_InventoryGrid::NativeDestruct()
+{
+	// Ensure this grid never leaves a dangling hover
+	if (HasHoverItem())
+	{
+		ClearHoverItem();
+	}
+	UnregisterGrid();
+	Super::NativeDestruct();
+}
+
+
+// Modified NativeTick to handle cross-grid highlighting
 void UInv_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
@@ -39,6 +57,34 @@ void UInv_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 	const FVector2D CanvasPosition = UInv_WidgetUtils::GetWidgetPosition(CanvasPanel);
 	const FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
 
+	// Check if we have a hover item from another grid
+	UInv_InventoryGrid* GridWithHoverItem = GetGridWithHoverItem(this);
+	if (GridWithHoverItem && GridWithHoverItem != this)
+	{
+		const FVector2D ThisCanvasPos = UInv_WidgetUtils::GetWidgetPosition(CanvasPanel);
+		const FVector2D ThisCanvasSize = UInv_WidgetUtils::GetWidgetSize(CanvasPanel);
+
+		// Check if mouse is actually over THIS grid
+		if (UInv_WidgetUtils::IsWithinBounds(ThisCanvasPos, ThisCanvasSize, MousePosition))
+		{
+			bMouseWithinCanvas = true; // Force true since we're already inside bounds
+
+			// Update tile params using THIS grid's position
+			UpdateTileParameters(ThisCanvasPos, MousePosition);
+
+			HoverItem = GridWithHoverItem->GetHoverItem();
+			OnTileParametersUpdated(TileParameters);
+			//HoverItem = nullptr;
+			return;
+		}
+		else
+		{
+			UnHighlightSlots(LastHighlightedIndex, LastHighlightedDimensions);
+			return;
+		}
+	}
+
+	// Original logic for same-grid operations
 	if (CursorExitedCanvas(CanvasPosition, UInv_WidgetUtils::GetWidgetSize(CanvasPanel), MousePosition))
 	{
 		return;
@@ -436,6 +482,9 @@ void UInv_InventoryGrid::PickUp(UInv_InventoryItem* ClickedInventoryItem, const 
 {
 	AssignHoverItem(ClickedInventoryItem, GridIndex, GridIndex);
 	RemoveItemFromGrid(ClickedInventoryItem, GridIndex);
+
+	// Track which grid this item came from
+	SourceGrid = this;
 }
 
 void UInv_InventoryGrid::AssignHoverItem(UInv_InventoryItem* InventoryItem, const int32 GridIndex, const int32 PreviousGridIndex)
@@ -621,26 +670,84 @@ void UInv_InventoryGrid::CreateItemPopUp(const int32 GridIndex)
 		ItemPopUp->CollapseConsumeButton();
 	}
 }
-
 void UInv_InventoryGrid::PutHoverItemBack()
 {
-	if (!IsValid(HoverItem)) return;
+	// ✅ Make sure we actually have a live hover item somewhere
+	UInv_InventoryGrid* HoverGrid = GetGridWithHoverItem(this);
+	if (!IsValid(HoverGrid) || !IsValid(HoverGrid->HoverItem))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("PutHoverItemBack: No valid hover item found"));
+		return;
+	}
 
-	FInv_SlotAvailabilityResult Result = HasRoomForItem(HoverItem->GetInventoryItem(), HoverItem->GetStackCount());
-	Result.Item = HoverItem->GetInventoryItem();
+	UInv_HoverItem* LocalHoverItem = HoverGrid->HoverItem;
+
+	// ✅ Check if hover item has a valid inventory item
+	if (!IsValid(LocalHoverItem->GetInventoryItem()))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("PutHoverItemBack: Hover item is invalid, clearing hover"));
+		HoverGrid->ClearHoverItem();
+		return;
+	}
+
+	// --- Try to return to the source grid ---
+	if (SourceGrid.IsValid() && SourceGrid.Get() != this)
+	{
+		UInv_InventoryGrid* SourceGridPtr = SourceGrid.Get();
+		FInv_SlotAvailabilityResult Result = SourceGridPtr->HasRoomForItem(LocalHoverItem->GetInventoryItem(),
+			LocalHoverItem->GetStackCount());
+
+		if (Result.TotalRoomToFill > 0)
+		{
+			Result.Item = LocalHoverItem->GetInventoryItem();
+			SourceGridPtr->AddStacks(Result);
+
+			HoverGrid->ClearHoverItem(); // ✅ Clear hover after placing back
+			return;
+		}
+	}
+
+	// --- Fallback: Try to place back in this grid ---
+	FInv_SlotAvailabilityResult Result = HasRoomForItem(LocalHoverItem->GetInventoryItem(),
+		LocalHoverItem->GetStackCount());
+	Result.Item = LocalHoverItem->GetInventoryItem();
 
 	AddStacks(Result);
-	ClearHoverItem();
+
+	HoverGrid->ClearHoverItem(); // ✅ Always clear hover after adding
 }
+
 
 void UInv_InventoryGrid::DropItem()
 {
-	if (!IsValid(HoverItem)) return;
-	if (!IsValid(HoverItem->GetInventoryItem())) return;
+	UInv_InventoryGrid* GridWithHoverItem = GetGridWithHoverItem(this);
 
-	InventoryComponent->Server_DropItem(HoverItem->GetInventoryItem(), HoverItem->GetStackCount());
+	if (!GridWithHoverItem)
+	{
+		UE_LOG(LogInventory, Warning, TEXT("DropItem: No grid has a hover item"));
+		return;
+	}
 
-	ClearHoverItem();
+	UInv_HoverItem* ActualHoverItem = GridWithHoverItem->GetHoverItem();
+	if (!IsValid(ActualHoverItem))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("DropItem: Hover item widget is invalid"));
+		return;
+	}
+
+	UInv_InventoryItem* InventoryItem = ActualHoverItem->GetInventoryItem();
+	if (!IsValid(InventoryItem))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("DropItem: Hover item has no valid inventory item"));
+		GridWithHoverItem->ClearHoverItem();
+		return;
+	}
+
+	// Now we can safely access the hover item data
+	const int32 StackCount = ActualHoverItem->GetStackCount();
+
+	// Clear the hover item from the correct grid (not necessarily this one)
+	GridWithHoverItem->ClearHoverItem();
 	ShowCursor();
 }
 
@@ -774,8 +881,51 @@ void UInv_InventoryGrid::ConstructGrid()
 	}
 }
 
+
 void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
+	// --- Cross-grid transfer check ---
+	UInv_InventoryGrid* GridWithHoverItem = GetGridWithHoverItem(this);
+
+	if (GridWithHoverItem && GridWithHoverItem != this)
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Attempting transfer from %s to %s"),
+			*GridWithHoverItem->GetName(), *GetName());
+
+		UInv_HoverItem* OtherHoverItem = GridWithHoverItem->GetHoverItem();
+
+		// Check if hover widget exists
+		if (!IsValid(OtherHoverItem))
+		{
+			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] No valid hover item found"));
+			return;
+		}
+
+		// Check if hover widget has a valid inventory item
+		UInv_InventoryItem* HoverInvItem = OtherHoverItem->GetInventoryItem();
+		if (!IsValid(HoverInvItem))
+		{
+			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Hover item has no valid inventory item — clearing hover"));
+			GridWithHoverItem->ClearHoverItem(); // Ensure ghost hover is gone
+			return;
+		}
+
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Hover item: %s, Stack: %d"),
+			*HoverInvItem->GetName(),
+			OtherHoverItem->GetStackCount());
+
+		if (HandleCrossGridTransfer(GridWithHoverItem, OtherHoverItem, GridIndex))
+		{
+			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Transfer handled successfully"));
+			return;
+		}
+		else
+		{
+			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Transfer FAILED in HandleCrossGridTransfer"));
+		}
+	}
+
+	// --- Same-grid operations ---
 	if (!IsValid(HoverItem)) return;
 	if (!GridSlots.IsValidIndex(ItemDropIndex)) return;
 
@@ -786,6 +936,7 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 	}
 
 	if (!IsInGridBounds(ItemDropIndex, HoverItem->GetGridDimensions())) return;
+
 	auto GridSlot = GridSlots[ItemDropIndex];
 	if (!GridSlot->GetInventoryItem().IsValid())
 	{
@@ -793,16 +944,24 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 	}
 }
 
+
 void UInv_InventoryGrid::PutDownOnIndex(const int32 Index)
 {
 	AddItemAtIndex(HoverItem->GetInventoryItem(), Index, HoverItem->IsStackable(), HoverItem->GetStackCount());
 	UpdateGridSlots(HoverItem->GetInventoryItem(), Index, HoverItem->IsStackable(), HoverItem->GetStackCount());
-	ClearHoverItem();
+
+	// ✅ Always clear hover from the actual hover grid
+	if (UInv_InventoryGrid* HoverGrid = GetGridWithHoverItem(this)) {
+		HoverGrid->ClearHoverItem();
+	}
 }
 
 void UInv_InventoryGrid::ClearHoverItem()
 {
-	if (!IsValid(HoverItem)) return;
+	if (!IsValid(HoverItem)) {
+		HoverItem = nullptr; // Just to be sure
+		return;
+	}
 
 	HoverItem->SetInventoryItem(nullptr);
 	HoverItem->SetIsStackable(false);
@@ -815,6 +974,7 @@ void UInv_InventoryGrid::ClearHoverItem()
 
 	ShowCursor();
 }
+
 
 UUserWidget* UInv_InventoryGrid::GetVisibleCursorWidget()
 {
@@ -1012,4 +1172,226 @@ bool UInv_InventoryGrid::MatchesCategory(const UInv_InventoryItem* Item) const
 	UE_LOG(LogInventory, Warning, TEXT("Matching %s"),
 		*UEnum::GetValueAsString(Item->GetItemManifest().GetItemCategory()));
 	return Item->GetItemManifest().GetItemCategory() == ItemCategory;
+}
+
+// New method: Register grid
+void UInv_InventoryGrid::RegisterGrid()
+{
+	// Remove any invalid grids first
+	RegisteredGrids.RemoveAll([](const TWeakObjectPtr<UInv_InventoryGrid>& Grid) {
+		return !Grid.IsValid();
+		});
+
+	// Add this grid if not already registered
+	if (!RegisteredGrids.Contains(this))
+	{
+		RegisteredGrids.Add(this);
+	}
+}
+
+// New method: Unregister grid
+void UInv_InventoryGrid::UnregisterGrid()
+{
+	RegisteredGrids.Remove(this);
+}
+
+// New method: Get grid with hover item
+UInv_InventoryGrid* UInv_InventoryGrid::GetGridWithHoverItem(const UObject* WorldContext)
+{
+	for (auto& GridPtr : RegisteredGrids)
+	{
+		if (UInv_InventoryGrid* Grid = GridPtr.Get())
+		{
+			if (Grid->HasHoverItem())
+			{
+				return Grid;
+			}
+		}
+	}
+	return nullptr;
+}
+
+// New method: Check if mouse is over this grid
+bool UInv_InventoryGrid::IsMouseOverGrid() const
+{
+	if (!IsValid(GetOwningPlayer())) return false;
+
+	const FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
+	const FVector2D CanvasPosition = UInv_WidgetUtils::GetWidgetPosition(CanvasPanel);
+	const FVector2D CanvasSize = UInv_WidgetUtils::GetWidgetSize(CanvasPanel);
+
+	return UInv_WidgetUtils::IsWithinBounds(CanvasPosition, CanvasSize, MousePosition);
+}
+
+// New method: Check if this grid can accept from another grid
+bool UInv_InventoryGrid::CanAcceptFromGrid(UInv_InventoryGrid* LocalSourceGrid, UInv_InventoryItem* Item, int32 StackAmount)
+{
+	if (!IsValid(Item) || !IsValid(LocalSourceGrid)) return false;
+
+	// Check if item category matches this grid
+	//if (!MatchesCategory(Item)) return false;
+
+	// Check if we have room for the item
+	FInv_SlotAvailabilityResult Result = HasRoomForItem(Item, StackAmount);
+	return Result.TotalRoomToFill > 0;
+}
+
+// New method: Transfer from another grid
+bool UInv_InventoryGrid::TransferFromGrid(UInv_InventoryGrid* LocalSourceGrid, UInv_InventoryItem* Item, int32 StackAmount)
+{
+	if (!CanAcceptFromGrid(LocalSourceGrid, Item, StackAmount)) return false;
+
+	// Get availability result
+	FInv_SlotAvailabilityResult Result = HasRoomForItem(Item, StackAmount);
+	Result.Item = Item;
+
+	// Add the item to this grid
+	AddStacks(Result);
+
+	return true;
+}
+bool UInv_InventoryGrid::HandleCrossGridTransfer(UInv_InventoryGrid* LocalSourceGrid, UInv_HoverItem* LocalHoverItem, int32 ClickedGridIndex)
+{
+	if (!IsValid(LocalSourceGrid) || !IsValid(LocalHoverItem))
+		return false;
+
+	UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] HandleCrossGridTransfer: GridIndex=%d"), ClickedGridIndex);
+
+	UInv_InventoryItem* Item = LocalHoverItem->GetInventoryItem();
+	int32 StackAmount = LocalHoverItem->GetStackCount();
+
+	// Check if this grid can accept the item
+	if (!CanAcceptFromGrid(LocalSourceGrid, Item, StackAmount))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("Cannot transfer item to this grid - category mismatch or no space"));
+		return false;
+	}
+
+	if (GridSlots.IsValidIndex(ClickedGridIndex))
+	{
+		UInv_GridSlot* TargetSlot = GridSlots[ClickedGridIndex];
+
+		if (TargetSlot->GetInventoryItem().IsValid())
+		{
+			UInv_InventoryItem* TargetItem = TargetSlot->GetInventoryItem().Get();
+
+			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Target slot %d already has item %s"),
+				ClickedGridIndex, *TargetSlot->GetInventoryItem()->GetName());
+
+			// Stack if possible
+			if (Item == TargetItem && Item->IsStackable()) {
+				if (const FInv_StackableFragment* StackableFragment = Item->GetItemManifest().GetFragmentOfType<FInv_StackableFragment>()) {
+					const int32 MaxStackSize = StackableFragment->GetMaxStackSize();
+					const int32 CurrentStack = TargetSlot->GetStackCount();
+					const int32 RoomInSlot = MaxStackSize - CurrentStack;
+
+					if (RoomInSlot > 0) {
+						const int32 AmountToTransfer = FMath::Min(StackAmount, RoomInSlot);
+						const int32 NewStackCount = CurrentStack + AmountToTransfer;
+
+						TargetSlot->SetStackCount(NewStackCount);
+						if (SlottedItems.Contains(ClickedGridIndex)) {
+							SlottedItems[ClickedGridIndex]->UpdateStackCount(NewStackCount);
+						}
+
+						const int32 Remainder = StackAmount - AmountToTransfer;
+
+						if (Remainder > 0) {
+							LocalHoverItem->UpdateStackCount(Remainder);
+						}
+						else {
+							// ✅ Hover item fully placed — clear it
+							if (UInv_InventoryGrid* HoverGrid = GetGridWithHoverItem(this)) {
+								HoverGrid->ClearHoverItem();
+							}
+						}
+						return true;
+					}
+				}
+			}
+			else
+			{
+				// Swap if possible
+				if (LocalSourceGrid->CanAcceptFromGrid(this, TargetItem))
+				{
+					return HandleCrossGridSwap(LocalSourceGrid, this, LocalHoverItem, TargetItem, ClickedGridIndex);
+				}
+			}
+		}
+		else
+		{
+			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Target slot %d empty, placing item"), ClickedGridIndex);
+			return PlaceItemFromOtherGrid(LocalSourceGrid, LocalHoverItem, ClickedGridIndex);
+		}
+	}
+
+	return false;
+}
+bool UInv_InventoryGrid::PlaceItemFromOtherGrid(UInv_InventoryGrid* LocalSourceGrid, UInv_HoverItem* LocalHoverItem, int32 GridIndex)
+{
+	if (!GridSlots.IsValidIndex(GridIndex) || !IsValid(LocalHoverItem) || !IsValid(LocalSourceGrid)) {
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Invalid parameters for placing item: GridIndex=%d, HoverItem=%s, SourceGrid=%s"),
+			GridIndex, *GetNameSafe(LocalHoverItem), *GetNameSafe(LocalSourceGrid));
+		return false;
+	}
+
+	UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Placing item at index %d"), GridIndex);
+
+	UInv_InventoryItem* Item = LocalHoverItem->GetInventoryItem();
+	int32 StackAmount = LocalHoverItem->GetStackCount();
+	bool bIsStackable = LocalHoverItem->IsStackable();
+
+	const FInv_GridFragment* GridFragment = GetFragment<FInv_GridFragment>(Item, FragmentTags::GridFragment);
+	if (!GridFragment) {
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] FAIL: Grid Fragment is false"));
+		return false;
+	}
+
+	const FIntPoint ItemDimensions = GridFragment->GetGridSize();
+
+	if (!IsInGridBounds(GridIndex, ItemDimensions)) {
+		if (!IsInGridBounds(ItemDropIndex, ItemDimensions)) {
+			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] FAIL: Out of bounds for start index %d"), GridIndex);
+			return false;
+		}
+		GridIndex = ItemDropIndex;
+	}
+
+	bool bAllSlotsFree = true;
+	UInv_InventoryStatics::ForEach2D(GridSlots, GridIndex, ItemDimensions, Columns, [&](const UInv_GridSlot* GridSlot) {
+		if (GridSlot->GetInventoryItem().IsValid()) {
+			bAllSlotsFree = false;
+		}
+		});
+
+	if (!bAllSlotsFree) {
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] FAIL: Required slots not free for index %d"), GridIndex);
+		return false;
+	}
+
+	// Place the item
+	AddItemAtIndex(Item, GridIndex, bIsStackable, StackAmount);
+	UpdateGridSlots(Item, GridIndex, bIsStackable, StackAmount);
+
+	// ✅ Always clear hover item from whichever grid is holding it
+	if (UInv_InventoryGrid* HoverGrid = GetGridWithHoverItem(this)) {
+		HoverGrid->ClearHoverItem();
+	}
+
+	UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] SUCCESS: Item placed and hover cleared"));
+	return true;
+}
+
+
+// New method: Handle cross-grid swap
+bool UInv_InventoryGrid::HandleCrossGridSwap(UInv_InventoryGrid* LocalSourceGrid, UInv_InventoryGrid* TargetGrid,
+	UInv_HoverItem* LocalHoverItem, UInv_InventoryItem* TargetItem, int32 TargetIndex)
+{
+	// This is more complex - you might want to temporarily store both items
+	// and then place them in their new positions
+
+	// For now, return false to indicate swap is not implemented
+	// You can implement this based on your specific requirements
+	UE_LOG(LogInventory, Warning, TEXT("Cross-grid item swapping not yet implemented"));
+	return false;
 }
