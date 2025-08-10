@@ -6,6 +6,8 @@ namespace GameItems
 {
 	namespace Equipment
 	{
+		// Weapon categories
+
 		namespace Weapons
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Axe)
@@ -17,22 +19,75 @@ namespace GameItems
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Staff)
 		}
 
-		namespace Cloaks
+		namespace Shields
 		{
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(RedCloak)
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(BlueCloak)
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(GreenCloak)
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(YellowCloak)
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(DarkGrayCloak)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(WoodenShield)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(IronShield)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(SteelShield)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(MagicShield)
 		}
 
-		namespace Masks
+		// Armor categories
+
+		namespace Helemts
 		{
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(SteelMask)
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(GreenMask)
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(BlueMask)
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(YellowMask)
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(GrayMask)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(LeatherHelmet)
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(ChainmailHelmet)
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(PlateHelmet)
+		}
+
+		namespace Chest
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(LeatherChest)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(ChainmailChest)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(PlateChest)
+		}
+
+		namespace Gloves
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(LeatherGloves)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(ChainmailGloves)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(PlateGloves)
+		}
+
+		namespace Legs
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(LeatherLegs)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(ChainmailLegs)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(PlateLegs)
+		}
+
+		namespace Boots
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(LeatherBoots)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(ChainmailBoots)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(PlateBoots)
+		}
+
+		// Accessories categories
+		
+		namespace Necklaces
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(WoodenNecklace)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(IronNecklace)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(SteelNecklace)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(MagicNecklace)
+		}
+
+		namespace Rings
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(WoodenRing)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(IronRing)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(SteelRing)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(MagicRing)
+		}
+
+		namespace Belts
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(WoodenBelt)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(IronBelt)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(SteelBelt)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(MagicBelt)
 		}
 	}
 
