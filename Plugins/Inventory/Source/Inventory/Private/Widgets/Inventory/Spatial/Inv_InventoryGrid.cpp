@@ -909,6 +909,7 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 		else
 		{
 			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Transfer FAILED in HandleCrossGridTransfer"));
+			return;
 		}
 	}
 
@@ -1153,14 +1154,25 @@ void UInv_InventoryGrid::OnInventoryMenuToggled(bool bOpen)
 	}
 }
 
+// Check placed item category against grid category
 bool UInv_InventoryGrid::MatchesCategory(const UInv_InventoryItem* Item) const
 {
 	if(!IsValid(Item)) return false;
-	UE_LOG(LogInventory, Warning, TEXT("Matching %s"),
-		*UEnum::GetValueAsString(Item->GetItemManifest().GetItemCategory()));
+	UE_LOG(LogInventory, Warning, TEXT("Matching %s to %s"),
+		*UEnum::GetValueAsString(Item->GetItemManifest().GetItemCategory()), *UEnum::GetValueAsString(ItemCategory));
+
 	return Item->GetItemManifest().GetItemCategory() == ItemCategory;
 }
 
+// Check Perferred item type against grid category
+bool UInv_InventoryGrid::MatchesPreferredCategory(const UInv_InventoryItem* Item) const
+{
+	if (!IsValid(Item)) return false;
+	
+	if (ItemCategory == EInv_ItemCategory::Backpack || ItemCategory == EInv_ItemCategory::Locked) return true;
+
+	return Item->GetItemManifest().GetItemCategory() == ItemCategory;
+}
 // New method: Register grid
 void UInv_InventoryGrid::RegisterGrid()
 {
@@ -1215,8 +1227,13 @@ bool UInv_InventoryGrid::CanAcceptFromGrid(UInv_InventoryGrid* LocalSourceGrid, 
 {
 	if (!IsValid(Item) || !IsValid(LocalSourceGrid)) return false;
 
+	// Print Local Grid Category
+
+	UE_LOG(LogInventory, Warning, TEXT("Matching Perferred %s to %s"),
+		*UEnum::GetValueAsString(Item->GetItemManifest().GetPreferredItemCategory()), *UEnum::GetValueAsString(LocalSourceGrid->ItemCategory));
+
 	// Check if item category matches this grid
-	//if (!MatchesCategory(Item)) return false;
+	if (!MatchesPreferredCategory(Item)) return false;
 
 	// Check if we have room for the item
 	FInv_SlotAvailabilityResult Result = HasRoomForItem(Item, StackAmount);
@@ -1368,7 +1385,6 @@ bool UInv_InventoryGrid::PlaceItemFromOtherGrid(UInv_InventoryGrid* LocalSourceG
 	UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] SUCCESS: Item placed and hover cleared"));
 	return true;
 }
-
 
 // New method: Handle cross-grid swap
 bool UInv_InventoryGrid::HandleCrossGridSwap(UInv_InventoryGrid* LocalSourceGrid, UInv_InventoryGrid* TargetGrid,

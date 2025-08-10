@@ -66,6 +66,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Inventory")
 	static UInv_InventoryGrid* GetGridWithHoverItem(const UObject* WorldContext);
 
+	bool MatchesPreferredCategory(const UInv_InventoryItem* Item) const;
+
 	/** Register this grid in the global grid manager */
 	void RegisterGrid();
 
