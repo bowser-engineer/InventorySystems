@@ -20,9 +20,9 @@ namespace GameItems
 		// Armor categories
 		namespace Helmets
 		{
-			UE_DEFINE_GAMEPLAY_TAG(LeatherHelmet, "GameItems.Equipment.Helemts.LeatherHelmet")
-				UE_DEFINE_GAMEPLAY_TAG(ChainmailHelmet, "GameItems.Equipment.Helemts.ChainmailHelmet")
-				UE_DEFINE_GAMEPLAY_TAG(PlateHelmet, "GameItems.Equipment.Helemts.PlateHelmet")
+			UE_DEFINE_GAMEPLAY_TAG(LeatherHelmet, "GameItems.Equipment.Helmets.LeatherHelmet")
+				UE_DEFINE_GAMEPLAY_TAG(ChainmailHelmet, "GameItems.Equipment.Helmets.ChainmailHelmet")
+				UE_DEFINE_GAMEPLAY_TAG(PlateHelmet, "GameItems.Equipment.Helmets.PlateHelmet")
 		}
 
 		namespace Chest
