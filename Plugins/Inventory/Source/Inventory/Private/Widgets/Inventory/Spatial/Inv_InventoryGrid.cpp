@@ -1184,6 +1184,7 @@ void UInv_InventoryGrid::RegisterGrid()
 	// Add this grid if not already registered
 	if (!RegisteredGrids.Contains(this))
 	{
+		UE_LOG(LogInventory, Warning, TEXT("Registering grid: %s"), *GetName());
 		RegisteredGrids.Add(this);
 	}
 }

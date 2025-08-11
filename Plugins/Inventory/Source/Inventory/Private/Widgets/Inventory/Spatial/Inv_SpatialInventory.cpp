@@ -157,11 +157,11 @@ bool UInv_SpatialInventory::CanEquipHoverItem(UInv_EquippedGridSlot* EquippedGri
 
 	UInv_InventoryItem* HeldItem = HoverItem->GetInventoryItem();
 
-	return HasHoverItem() && IsValid(HeldItem) &&
+	return
+		HasHoverItem() &&
+		IsValid(HeldItem) &&
 		!HoverItem->IsStackable() &&
-			// Previous iterations Checked if item goes into the Equipment bag
-			//HeldItem->GetItemManifest().GetItemCategory() == EInv_ItemCategory::Equippable &&
-				HeldItem->GetItemManifest().GetItemType().MatchesTag(EquipmentTypeTag);
+		HeldItem->GetItemManifest().GetItemType().MatchesTag(EquipmentTypeTag);
 }
 
 UInv_EquippedGridSlot* UInv_SpatialInventory::FindSlotWithEquippedItem(UInv_InventoryItem* EquippedItem) const
@@ -219,6 +219,8 @@ FInv_SlotAvailabilityResult UInv_SpatialInventory::HasRoomForItem(UInv_ItemCompo
 	{
 		case EInv_ItemCategory::Backpack:
 			return Grid_Backpack->HasRoomForItem(ItemComponent);
+		case EInv_ItemCategory::Locked:
+			return Grid_Locked->HasRoomForItem(ItemComponent);
 		case EInv_ItemCategory::Satchel:
 			return Grid_Satchel->HasRoomForItem(ItemComponent);
 		case EInv_ItemCategory::Quiver:
@@ -260,6 +262,9 @@ void UInv_SpatialInventory::OnItemUnHovered()
 	GetEquippedItemDescription()->SetVisibility(ESlateVisibility::Collapsed);
 	GetOwningPlayer()->GetWorldTimerManager().ClearTimer(EquippedDescriptionTimer);
 }
+
+// There are 4 grids in the Spatial Inventory, so we check each one for a hover item
+// but theres probably a better way to do this because there is only going to be one hover item at a time.
 
 bool UInv_SpatialInventory::HasHoverItem() const
 {
