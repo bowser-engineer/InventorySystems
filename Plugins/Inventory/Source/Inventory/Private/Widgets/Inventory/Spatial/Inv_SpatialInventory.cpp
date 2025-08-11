@@ -266,13 +266,17 @@ bool UInv_SpatialInventory::HasHoverItem() const
 	if (Grid_Backpack->HasHoverItem()) return true;
 	if (Grid_Satchel->HasHoverItem()) return true;
 	if (Grid_Locked->HasHoverItem()) return true;
+	if(Grid_Quiver->HasHoverItem()) return true;
 	return false;
 }
 
 UInv_HoverItem* UInv_SpatialInventory::GetHoverItem() const
 {
-	if (!ActiveGrid.IsValid()) return nullptr;
-	return ActiveGrid->GetHoverItem();
+	if (Grid_Backpack->HasHoverItem()) return Grid_Backpack->GetHoverItem();
+	if (Grid_Satchel->HasHoverItem()) return Grid_Satchel->GetHoverItem();
+	if (Grid_Locked->HasHoverItem()) return Grid_Locked->GetHoverItem();
+	if (Grid_Quiver->HasHoverItem()) return Grid_Quiver->GetHoverItem();
+	return nullptr;
 }
 
 float UInv_SpatialInventory::GetTileSize() const

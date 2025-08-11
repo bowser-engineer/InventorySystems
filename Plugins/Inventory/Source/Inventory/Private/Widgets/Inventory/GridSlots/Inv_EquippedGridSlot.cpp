@@ -16,14 +16,26 @@
 
 void UInv_EquippedGridSlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	if (!IsAvailable()) return;
+	if (!IsAvailable()) 
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UInv_EquippedGridSlot::NativeOnMouseEnter called on an unavailable slot!"));
+		return;
+	}
 	UInv_HoverItem* HoverItem = UInv_InventoryStatics::GetHoverItem(GetOwningPlayer());
-	if (!IsValid(HoverItem)) return;
+	if (!IsValid(HoverItem))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UInv_EquippedGridSlot::NativeOnMouseEnter called on an Invalid HoverItem!"));
+		return;
+	}
 
 	if (HoverItem->GetItemType().MatchesTag(EquipmentTypeTag))
 	{
 		SetOccupiedTexture();
 		Image_GrayedOutIcon->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UInv_EquippedGridSlot::NativeOnMouseEnter called on a HoverItem with an incompatible Equipment Type Tag!"));
 	}
 }
 
