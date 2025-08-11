@@ -19,24 +19,16 @@ namespace GameItems
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Staff)
 		}
 
-		namespace Shields
-		{
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(WoodenShield)
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(IronShield)
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(SteelShield)
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(MagicShield)
-		}
-
 		// Armor categories
 
-		namespace Helemts
+		namespace Helmets
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(LeatherHelmet)
 				UE_DECLARE_GAMEPLAY_TAG_EXTERN(ChainmailHelmet)
 				UE_DECLARE_GAMEPLAY_TAG_EXTERN(PlateHelmet)
 		}
 
-		namespace Chest
+		namespace Chestplates
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(LeatherChest)
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(ChainmailChest)
@@ -89,6 +81,33 @@ namespace GameItems
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(SteelBelt)
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(MagicBelt)
 		}
+
+		// Containers categories
+
+		namespace Backpacks
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(WoodenBackpack)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(IronBackpack)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(SteelBackpack)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(MagicBackpack)
+		}
+
+		namespace Satchels
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(WoodenSatchel)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(IronSatchel)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(SteelSatchel)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(MagicSatchel)
+		}
+
+		namespace Quivers
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(WoodenQuiver)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(IronQuiver)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(SteelQuiver)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(MagicQuiver)
+		}
+
 	}
 
 	namespace Consumables

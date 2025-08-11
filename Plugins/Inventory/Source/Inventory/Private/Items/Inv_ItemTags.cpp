@@ -17,17 +17,8 @@ namespace GameItems
 				UE_DEFINE_GAMEPLAY_TAG(Staff, "GameItems.Equipment.Weapons.Staff")
 		}
 
-		// Shields
-		namespace Shields
-		{
-			UE_DEFINE_GAMEPLAY_TAG(WoodenShield, "GameItems.Equipment.Shields.WoodenShield")
-				UE_DEFINE_GAMEPLAY_TAG(IronShield, "GameItems.Equipment.Shields.IronShield")
-				UE_DEFINE_GAMEPLAY_TAG(SteelShield, "GameItems.Equipment.Shields.SteelShield")
-				UE_DEFINE_GAMEPLAY_TAG(MagicShield, "GameItems.Equipment.Shields.MagicShield")
-		}
-
 		// Armor categories
-		namespace Helemts // Keeping your original spelling from header
+		namespace Helmets
 		{
 			UE_DEFINE_GAMEPLAY_TAG(LeatherHelmet, "GameItems.Equipment.Helemts.LeatherHelmet")
 				UE_DEFINE_GAMEPLAY_TAG(ChainmailHelmet, "GameItems.Equipment.Helemts.ChainmailHelmet")
@@ -86,6 +77,32 @@ namespace GameItems
 				UE_DEFINE_GAMEPLAY_TAG(SteelBelt, "GameItems.Equipment.Belts.SteelBelt")
 				UE_DEFINE_GAMEPLAY_TAG(MagicBelt, "GameItems.Equipment.Belts.MagicBelt")
 		}
+
+		// Containers
+		namespace Backpacks
+		{
+			UE_DEFINE_GAMEPLAY_TAG(WoodenBackpack, "GameItems.Equipment.Backpacks.WoodenBackpack")
+				UE_DEFINE_GAMEPLAY_TAG(IronBackpack, "GameItems.Equipment.Backpacks.IronBackpack")
+				UE_DEFINE_GAMEPLAY_TAG(SteelBackpack, "GameItems.Equipment.Backpacks.SteelBackpack")
+				UE_DEFINE_GAMEPLAY_TAG(MagicBackpack, "GameItems.Equipment.Backpacks.MagicBackpack")
+		}
+
+		namespace Satchels
+		{
+			UE_DEFINE_GAMEPLAY_TAG(WoodenSatchel, "GameItems.Equipment.Satchels.WoodenSatchel")
+				UE_DEFINE_GAMEPLAY_TAG(IronSatchel, "GameItems.Equipment.Satchels.IronSatchel")
+				UE_DEFINE_GAMEPLAY_TAG(SteelSatchel, "GameItems.Equipment.Satchels.SteelSatchel")
+				UE_DEFINE_GAMEPLAY_TAG(MagicSatchel, "GameItems.Equipment.Satchels.MagicSatchel")
+		}
+
+		namespace Quivers
+		{
+			UE_DEFINE_GAMEPLAY_TAG(WoodenQuiver, "GameItems.Equipment.Quivers.WoodenQuiver")
+				UE_DEFINE_GAMEPLAY_TAG(IronQuiver, "GameItems.Equipment.Quivers.IronQuiver")
+				UE_DEFINE_GAMEPLAY_TAG(SteelQuiver, "GameItems.Equipment.Quivers.SteelQuiver")
+				UE_DEFINE_GAMEPLAY_TAG(MagicQuiver, "GameItems.Equipment.Quivers.MagicQuiver")
+		}
+
 	}
 
 	namespace Consumables
