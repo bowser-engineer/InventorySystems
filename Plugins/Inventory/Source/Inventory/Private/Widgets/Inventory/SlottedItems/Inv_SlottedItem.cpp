@@ -1,12 +1,17 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Widgets/Inventory/SlottedItems/Inv_SlottedItem.h"
+
 #include "Items/Inv_InventoryItem.h"
 
+#include "Inventory.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "InventoryManagement/Utils/Inv_InventoryStatics.h"
+
+#include "Widgets/Inventory/Spatial/Inv_GridItemPlacement.h"
+#include "Widgets/Inventory/Spatial/Inv_GridPopupInteractions.h"
+#include "Widgets/Inventory/HoverItem/Inv_HoverItem.h"
 
 FReply UInv_SlottedItem::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {

@@ -64,12 +64,19 @@ void UInv_InventoryGrid::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 		{
 			bMouseWithinCanvas = true;
 			UInv_GridCalculations::UpdateTileParameters(this, ThisCanvasPos, MousePosition);
+			// Don't assign HoverItem directly - just reference it without taking ownership
+			// The actual hover item should remain owned by the original grid
 			HoverItem = GridWithHoverItem->GetHoverItem();
 			OnTileParametersUpdated(TileParameters);
 			return;
 		}
 		else
 		{
+			// Clear local reference when mouse exits bounds
+			if (HoverItem && HoverItem == GridWithHoverItem->GetHoverItem())
+			{
+				HoverItem = nullptr;
+			}
 			UInv_GridHighlighting::UnHighlightSlots(this, LastHighlightedIndex, LastHighlightedDimensions);
 			return;
 		}
@@ -161,10 +168,40 @@ void UInv_InventoryGrid::AddStacks(const FInv_SlotAvailabilityResult& Result)
 
 void UInv_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
+	UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemClicked] Called for grid %s, slot %d"), *GetName(), GridIndex);
+	
 	UInv_InventoryStatics::ItemUnhovered(GetOwningPlayer());
 
 	check(GridSlots.IsValidIndex(GridIndex));
 	UInv_InventoryItem* ClickedInventoryItem = GridSlots[GridIndex]->GetInventoryItem().Get();
+
+	// Check for cross-grid hover item first
+	UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this);
+	if (GridWithHoverItem && GridWithHoverItem != this)
+	{
+		UInv_HoverItem* OtherHoverItem = GridWithHoverItem->GetHoverItem();
+		if (IsValid(OtherHoverItem))
+		{
+			UInv_InventoryItem* HoverInvItem = OtherHoverItem->GetInventoryItem();
+			if (IsValid(HoverInvItem))
+			{
+				// Check if they are stackable items of the same type
+				if (UInv_GridCrossOperations::AreItemsStackable(HoverInvItem, ClickedInventoryItem))
+				{
+					UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemClicked] Cross-grid stackable items detected"));
+					// Use cross-grid stacking logic directly
+					UInv_GridCrossOperations::HandleCrossGridStacking(this, OtherHoverItem, GridIndex);
+					return;
+				}
+				else
+				{
+					UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemClicked] Cross-grid non-stackable items - doing swap"));
+					SwapWithHoverItem(ClickedInventoryItem, GridIndex);
+					return;
+				}
+			}
+		}
+	}
 
 	if (!IsValid(HoverItem) && UInv_GridPopupInteractions::IsLeftClick(MouseEvent))
 	{
@@ -268,8 +305,42 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 		UInv_InventoryItem* HoverInvItem = OtherHoverItem->GetInventoryItem();
 		if (!IsValid(HoverInvItem))
 		{
-			GridWithHoverItem->ClearHoverItem();
+			// Clear hover item from the owning grid, not just any grid
+			if (UInv_InventoryGrid* OwnerGrid = OtherHoverItem->GetOwnerGrid())
+			{
+				if (OwnerGrid->GetHoverItem() == OtherHoverItem)
+				{
+					OwnerGrid->ClearHoverItem();
+				}
+			}
+			else
+			{
+				GridWithHoverItem->ClearHoverItem();
+			}
 			return;
+		}
+
+		// Check if we clicked on a slot that has an item
+		if (GridSlots.IsValidIndex(GridIndex) && GridSlots[GridIndex]->GetInventoryItem().IsValid())
+		{
+			UInv_InventoryItem* ClickedItem = GridSlots[GridIndex]->GetInventoryItem().Get();
+			UInv_InventoryItem* OtherHoverInvItem = OtherHoverItem->GetInventoryItem();
+			
+			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Detected item at clicked slot %d"), GridIndex);
+			
+			// Check if they are stackable items of the same type
+			if (UInv_GridCrossOperations::AreItemsStackable(OtherHoverInvItem, ClickedItem))
+			{
+				UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Items are stackable, delegating to HandleStackableItemInteraction"));
+				HandleStackableItemInteraction(ClickedItem, GridIndex);
+				return;
+			}
+			else
+			{
+				UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Items not stackable, delegating to OnSlottedItemClicked"));
+				OnSlottedItemClicked(GridIndex, MouseEvent);
+				return;
+			}
 		}
 
 		if (UInv_GridCrossOperations::HandleCrossGridTransfer(this, GridWithHoverItem, OtherHoverItem, GridIndex))
@@ -279,7 +350,9 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 		}
 		else
 		{
-			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Item transfer failed - returning early"));
+			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Item transfer failed - putting hover item back"));
+			// Don't leave hover item in broken state - put it back to source grid
+			UInv_GridHoverManagement::PutHoverItemBack(GridWithHoverItem);
 			return;
 		}
 	}

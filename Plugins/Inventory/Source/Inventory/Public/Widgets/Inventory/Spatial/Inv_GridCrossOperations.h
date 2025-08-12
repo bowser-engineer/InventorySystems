@@ -29,4 +29,6 @@ public:
 	static bool MatchesCategory(const UInv_InventoryGrid* Grid, const UInv_InventoryItem* Item);
 	
 	static bool MatchesPreferredCategory(const UInv_InventoryGrid* Grid, const UInv_InventoryItem* Item);
+	
+	static bool AreItemsStackable(const UInv_InventoryItem* Item1, const UInv_InventoryItem* Item2);
 };

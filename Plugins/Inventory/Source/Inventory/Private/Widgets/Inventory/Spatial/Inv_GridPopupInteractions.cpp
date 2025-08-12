@@ -134,9 +134,9 @@ bool UInv_GridPopupInteractions::IsSameStackable(const UInv_InventoryGrid* Grid,
 {
 	if (!IsValid(Grid) || !IsValid(Grid->HoverItem) || !IsValid(ClickedInventoryItem)) return false;
 
-	const bool bIsSameItem = ClickedInventoryItem == Grid->HoverItem->GetInventoryItem();
-	const bool bIsStackable = ClickedInventoryItem->IsStackable();
-	return bIsSameItem && bIsStackable && Grid->HoverItem->GetItemType().MatchesTagExact(ClickedInventoryItem->GetItemManifest().GetItemType());
+	const bool bIsStackable = ClickedInventoryItem->IsStackable() && Grid->HoverItem->IsStackable();
+	const bool bIsSameItemType = Grid->HoverItem->GetItemType().MatchesTagExact(ClickedInventoryItem->GetItemManifest().GetItemType());
+	return bIsStackable && bIsSameItemType;
 }
 
 bool UInv_GridPopupInteractions::ShouldSwapStackCounts(const int32 RoomInClickedSlot, const int32 HoveredStackCount, const int32 MaxStackSize)

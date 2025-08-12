@@ -73,6 +73,17 @@ void UInv_GridHoverManagement::ClearHoverItem(UInv_InventoryGrid* Grid)
 		return;
 	}
 
+	// Safety check: only clear if this grid actually owns the hover item
+	if (Grid->HoverItem->GetOwnerGrid() != Grid)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[HoverManagement] Attempted to clear hover item from non-owning grid %s. Owner: %s"),
+			*GetNameSafe(Grid), 
+			*GetNameSafe(Grid->HoverItem->GetOwnerGrid()));
+		// Just clear the reference, don't destroy the hover item
+		Grid->HoverItem = nullptr;
+		return;
+	}
+
 	Grid->HoverItem->SetInventoryItem(nullptr);
 	Grid->HoverItem->SetIsStackable(false);
 	Grid->HoverItem->SetPreviousGridIndex(INDEX_NONE);

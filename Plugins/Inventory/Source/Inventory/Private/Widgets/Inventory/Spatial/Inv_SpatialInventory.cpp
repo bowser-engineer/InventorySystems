@@ -63,8 +63,20 @@ void UInv_SpatialInventory::EquippedGridSlotClicked(UInv_EquippedGridSlot* Equip
 
 	InventoryComponent->Server_EquipSlotClicked(HoverItem->GetInventoryItem(), nullptr);
 	
-	// Clear the Hover Item
-	Grid_Backpack->ClearHoverItem();
+	// Clear the Hover Item from whichever grid actually owns it
+	UInv_InventoryGrid* HoverItemOwnerGrid = HoverItem->GetOwnerGrid();
+	if (IsValid(HoverItemOwnerGrid))
+	{
+		HoverItemOwnerGrid->ClearHoverItem();
+	}
+	else
+	{
+		// Fallback: clear from any grid that has a hover item
+		if (Grid_Backpack->HasHoverItem()) Grid_Backpack->ClearHoverItem();
+		else if (Grid_Locked->HasHoverItem()) Grid_Locked->ClearHoverItem();
+		else if (Grid_Satchel->HasHoverItem()) Grid_Satchel->ClearHoverItem();
+		else if (Grid_Quiver->HasHoverItem()) Grid_Quiver->ClearHoverItem();
+	}
 }
 
 void UInv_SpatialInventory::EquippedSlottedItemClicked(UInv_EquippedSlottedItem* EquippedSlottedItem)
@@ -82,6 +94,12 @@ void UInv_SpatialInventory::EquippedSlottedItemClicked(UInv_EquippedSlottedItem*
 	
 	// Get the Equipped Grid Slot holding this item
 	UInv_EquippedGridSlot* EquippedGridSlot = FindSlotWithEquippedItem(ItemToUnequip);
+	
+	// If we have a hover item, validate it can be equipped in this slot
+	if (ItemToEquip && !CanEquipHoverItemInSlot(EquippedGridSlot, ItemToEquip))
+	{
+		return;
+	}
 	
 	// Clear the equipped grid slot of this item (set its inventory item to nullptr)
 	ClearSlotOfItem(EquippedGridSlot);
@@ -157,12 +175,33 @@ bool UInv_SpatialInventory::CanEquipHoverItem(UInv_EquippedGridSlot* EquippedGri
 	if (!IsValid(HoverItem)) return false;
 
 	UInv_InventoryItem* HeldItem = HoverItem->GetInventoryItem();
+	if (!IsValid(HeldItem)) return false;
+	
+	if (HoverItem->IsStackable()) return false;
+	
+	// Get the equipment fragment to check the equipment type
+	const FInv_EquipmentFragment* EquipmentFragment = HeldItem->GetItemManifest().GetFragmentOfType<FInv_EquipmentFragment>();
+	if (!EquipmentFragment) return false;
 
-	return
-		HasHoverItem() &&
-		IsValid(HeldItem) &&
-		!HoverItem->IsStackable() &&
-		HeldItem->GetItemManifest().GetItemType().MatchesTag(EquipmentTypeTag);
+	const FGameplayTag ItemEquipmentType = EquipmentFragment->GetEquipmentType();
+	return ItemEquipmentType.MatchesTag(EquipmentTypeTag);
+}
+
+bool UInv_SpatialInventory::CanEquipHoverItemInSlot(UInv_EquippedGridSlot* EquippedGridSlot, UInv_InventoryItem* ItemToEquip) const
+{
+	if (!IsValid(EquippedGridSlot) || !IsValid(ItemToEquip)) return false;
+	
+	// Get the required equipment type from the slot
+	const FGameplayTag SlotEquipmentType = EquippedGridSlot->GetEquipmentTypeTag();
+	
+	// Get the equipment fragment from the item we want to equip
+	const FInv_EquipmentFragment* EquipmentFragment = ItemToEquip->GetItemManifest().GetFragmentOfType<FInv_EquipmentFragment>();
+	if (!EquipmentFragment) return false;
+	
+	const FGameplayTag ItemEquipmentType = EquipmentFragment->GetEquipmentType();
+	
+	// Check if the item's equipment type matches the slot's required equipment type (hierarchical matching)
+	return ItemEquipmentType.MatchesTag(SlotEquipmentType);
 }
 
 UInv_EquippedGridSlot* UInv_SpatialInventory::FindSlotWithEquippedItem(UInv_InventoryItem* EquippedItem) const

@@ -56,6 +56,9 @@ bool UInv_GridCrossOperations::HandleCrossGridTransfer(UInv_InventoryGrid* Targe
 	{
 		UInv_GridSlot* TargetSlot = TargetGrid->GridSlots[ClickedGridIndex];
 
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Checking slot %d, HasItem: %s"), 
+			ClickedGridIndex, TargetSlot->GetInventoryItem().IsValid() ? TEXT("TRUE") : TEXT("FALSE"));
+
 		if (TargetSlot->GetInventoryItem().IsValid())
 		{
 			UInv_InventoryItem* TargetItem = TargetSlot->GetInventoryItem().Get();
@@ -63,7 +66,7 @@ bool UInv_GridCrossOperations::HandleCrossGridTransfer(UInv_InventoryGrid* Targe
 			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Target slot %d already has item %s"),
 				ClickedGridIndex, *TargetSlot->GetInventoryItem()->GetName());
 
-			if (Item == TargetItem && Item->IsStackable()) 
+			if (AreItemsStackable(Item, TargetItem)) 
 			{
 				return HandleCrossGridStacking(TargetGrid, HoverItem, ClickedGridIndex);
 			}
@@ -85,11 +88,11 @@ bool UInv_GridCrossOperations::HandleCrossGridTransfer(UInv_InventoryGrid* Targe
 	return false;
 }
 
-bool UInv_GridCrossOperations::HandleCrossGridStacking(UInv_InventoryGrid* TargetGrid, UInv_HoverItem* HoverItem, int32 TargetIndex)
+bool UInv_GridCrossOperations::HandleCrossGridStacking(UInv_InventoryGrid* TargetGrid, UInv_HoverItem* LocalHoverItem, int32 TargetIndex)
 {
-	if (!IsValid(TargetGrid) || !IsValid(HoverItem)) return false;
+	if (!IsValid(TargetGrid) || !IsValid(LocalHoverItem)) return false;
 
-	UInv_InventoryItem* Item = HoverItem->GetInventoryItem();
+	UInv_InventoryItem* Item = LocalHoverItem->GetInventoryItem();
 	if (!IsValid(Item) || !Item->IsStackable()) return false;
 
 	if (const FInv_StackableFragment* StackableFragment = Item->GetItemManifest().GetFragmentOfType<FInv_StackableFragment>()) 
@@ -97,7 +100,7 @@ bool UInv_GridCrossOperations::HandleCrossGridStacking(UInv_InventoryGrid* Targe
 		const int32 MaxStackSize = StackableFragment->GetMaxStackSize();
 		const int32 CurrentStack = TargetGrid->GridSlots[TargetIndex]->GetStackCount();
 		const int32 RoomInSlot = MaxStackSize - CurrentStack;
-		const int32 StackAmount = HoverItem->GetStackCount();
+		const int32 StackAmount = LocalHoverItem->GetStackCount();
 
 		if (RoomInSlot > 0) 
 		{
@@ -114,13 +117,28 @@ bool UInv_GridCrossOperations::HandleCrossGridStacking(UInv_InventoryGrid* Targe
 
 			if (Remainder > 0) 
 			{
-				HoverItem->UpdateStackCount(Remainder);
+				LocalHoverItem->UpdateStackCount(Remainder);
 			}
 			else 
 			{
-				if (UInv_InventoryGrid* HoverGrid = UInv_GridInitialization::GetGridWithHoverItem(TargetGrid)) 
+				// Clear hover item from the source grid that owns it
+				if (UInv_InventoryGrid* LocalHoverGrid = LocalHoverItem->GetOwnerGrid())
 				{
-					HoverGrid->ClearHoverItem();
+					if (LocalHoverGrid->GetHoverItem() == LocalHoverItem)
+					{
+						LocalHoverGrid->ClearHoverItem();
+					}
+				}
+				else
+				{
+					// Fallback: find grid with hover item if owner reference is broken
+					if (UInv_InventoryGrid* OtherHoverGrid = UInv_GridInitialization::GetGridWithHoverItem(TargetGrid))
+					{
+						if (OtherHoverGrid->GetHoverItem() == LocalHoverItem)
+						{
+							OtherHoverGrid->ClearHoverItem();
+						}
+					}
 				}
 			}
 			return true;
@@ -183,9 +201,24 @@ bool UInv_GridCrossOperations::PlaceItemFromOtherGrid(UInv_InventoryGrid* Target
 	UInv_GridItemPlacement::AddItemAtIndex(TargetGrid, Item, GridIndex, bIsStackable, StackAmount);
 	UInv_GridItemPlacement::UpdateGridSlots(TargetGrid, Item, GridIndex, bIsStackable, StackAmount);
 
-	if (UInv_InventoryGrid* HoverGrid = UInv_GridInitialization::GetGridWithHoverItem(TargetGrid)) 
+	// Clear hover item from the source grid that owns it
+	if (UInv_InventoryGrid* LocalHoverGrid = HoverItem->GetOwnerGrid())
 	{
-		HoverGrid->ClearHoverItem();
+		if (LocalHoverGrid->GetHoverItem() == HoverItem)
+		{
+			LocalHoverGrid->ClearHoverItem();
+		}
+	}
+	else
+	{
+		// Fallback: find grid with hover item if owner reference is broken
+		if (UInv_InventoryGrid* OtherHoverGrid = UInv_GridInitialization::GetGridWithHoverItem(TargetGrid))
+		{
+			if (OtherHoverGrid->GetHoverItem() == HoverItem)
+			{
+				OtherHoverGrid->ClearHoverItem();
+			}
+		}
 	}
 
 	UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] SUCCESS: Item placed and hover cleared"));
@@ -196,8 +229,87 @@ bool UInv_GridCrossOperations::HandleCrossGridSwap(UInv_InventoryGrid* SourceGri
 												  UInv_HoverItem* HoverItem, UInv_InventoryItem* TargetItem, 
 												  int32 TargetIndex)
 {
-	UE_LOG(LogInventory, Warning, TEXT("Cross-grid item swapping not yet implemented"));
-	return false;
+	if (!IsValid(SourceGrid) || !IsValid(TargetGrid) || !IsValid(HoverItem) || !IsValid(TargetItem))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] HandleCrossGridSwap: Invalid parameters"));
+		return false;
+	}
+
+	UInv_InventoryItem* HoverInvItem = HoverItem->GetInventoryItem();
+	if (!IsValid(HoverInvItem))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] HandleCrossGridSwap: Invalid hover item"));
+		return false;
+	}
+
+	// Get item information
+	const int32 HoverStackCount = HoverItem->GetStackCount();
+	const bool bHoverIsStackable = HoverItem->IsStackable();
+	
+	// Get target item information
+	const int32 TargetStackCount = TargetGrid->GridSlots[TargetIndex]->GetStackCount();
+	const bool bTargetIsStackable = TargetItem->IsStackable();
+
+	// Get fragments to determine item dimensions
+	const FInv_GridFragment* HoverGridFragment = GetFragment<FInv_GridFragment>(HoverInvItem, FragmentTags::GridFragment);
+	const FInv_GridFragment* TargetGridFragment = GetFragment<FInv_GridFragment>(TargetItem, FragmentTags::GridFragment);
+	
+	if (!HoverGridFragment || !TargetGridFragment)
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] HandleCrossGridSwap: Missing grid fragments"));
+		return false;
+	}
+
+	const FIntPoint HoverDimensions = HoverGridFragment->GetGridSize();
+	const FIntPoint TargetDimensions = TargetGridFragment->GetGridSize();
+
+	// Find the upper-left index of the target item in its grid
+	int32 TargetUpperLeftIndex = TargetIndex;
+	if (TargetGrid->GridSlots.IsValidIndex(TargetIndex))
+	{
+		TargetUpperLeftIndex = TargetGrid->GridSlots[TargetIndex]->GetUpperLeftIndex();
+	}
+
+	// Check if hover item can fit in target position
+	if (!UInv_GridItemPlacement::IsInGridBounds(TargetGrid, TargetIndex, HoverDimensions))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] HandleCrossGridSwap: Hover item doesn't fit at target position"));
+		return false;
+	}
+
+	// Check if target item can fit in source grid
+	FInv_SlotAvailabilityResult SourceAvailability = UInv_GridItemPlacement::HasRoomForItem(SourceGrid, TargetItem, TargetStackCount);
+	if (SourceAvailability.TotalRoomToFill <= 0)
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] HandleCrossGridSwap: Target item doesn't fit in source grid"));
+		return false;
+	}
+
+	UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] HandleCrossGridSwap: Starting swap between grids"));
+
+	// Step 1: Remove target item from target grid
+	UInv_GridItemPlacement::RemoveItemFromGrid(TargetGrid, TargetItem, TargetUpperLeftIndex);
+
+	// Step 2: Place hover item in target grid at target position
+	UInv_GridItemPlacement::AddItemAtIndex(TargetGrid, HoverInvItem, TargetIndex, bHoverIsStackable, HoverStackCount);
+	UInv_GridItemPlacement::UpdateGridSlots(TargetGrid, HoverInvItem, TargetIndex, bHoverIsStackable, HoverStackCount);
+
+	// Step 3: Place target item in source grid using availability result
+	SourceAvailability.Item = TargetItem;
+	SourceGrid->AddStacks(SourceAvailability);
+
+	// Step 4: Clear hover item with proper ownership handling
+	if (UInv_InventoryGrid* HoverGrid = UInv_GridInitialization::GetGridWithHoverItem(TargetGrid))
+	{
+		// Ensure we're clearing from the correct grid
+		if (HoverGrid->GetHoverItem() == HoverItem)
+		{
+			HoverGrid->ClearHoverItem();
+		}
+	}
+
+	UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] HandleCrossGridSwap: Swap completed successfully"));
+	return true;
 }
 
 bool UInv_GridCrossOperations::MatchesCategory(const UInv_InventoryGrid* Grid, const UInv_InventoryItem* Item)
@@ -226,4 +338,15 @@ bool UInv_GridCrossOperations::MatchesPreferredCategory(const UInv_InventoryGrid
 
 
 	return Item->GetItemManifest().GetItemCategory() == Grid->ItemCategory;
+}
+
+bool UInv_GridCrossOperations::AreItemsStackable(const UInv_InventoryItem* Item1, const UInv_InventoryItem* Item2)
+{
+	if (!IsValid(Item1) || !IsValid(Item2)) return false;
+	
+	// Both items must be stackable
+	if (!Item1->IsStackable() || !Item2->IsStackable()) return false;
+	
+	// Items must be of the same type (exact tag match)
+	return Item1->GetItemManifest().GetItemType().MatchesTagExact(Item2->GetItemManifest().GetItemType());
 }

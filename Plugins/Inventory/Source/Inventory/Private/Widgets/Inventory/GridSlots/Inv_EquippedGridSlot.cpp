@@ -28,7 +28,20 @@ void UInv_EquippedGridSlot::NativeOnMouseEnter(const FGeometry& InGeometry, cons
 		return;
 	}
 
-	if (HoverItem->GetItemType().MatchesTag(EquipmentTypeTag))
+	// Check if the hover item has an equipment fragment and if it matches this slot
+	UInv_InventoryItem* HoverInvItem = HoverItem->GetInventoryItem();
+	bool bIsCompatible = false;
+	
+	if (IsValid(HoverInvItem))
+	{
+		const FInv_EquipmentFragment* EquipmentFragment = HoverInvItem->GetItemManifest().GetFragmentOfType<FInv_EquipmentFragment>();
+		if (EquipmentFragment)
+		{
+			bIsCompatible = EquipmentFragment->GetEquipmentType().MatchesTag(EquipmentTypeTag);
+		}
+	}
+	
+	if (bIsCompatible)
 	{
 		SetOccupiedTexture();
 		Image_GrayedOutIcon->SetVisibility(ESlateVisibility::Collapsed);
@@ -47,7 +60,20 @@ void UInv_EquippedGridSlot::NativeOnMouseLeave(const FPointerEvent& InMouseEvent
 
 	if (IsValid(EquippedSlottedItem)) return;
 
-	if (HoverItem->GetItemType().MatchesTag(EquipmentTypeTag))
+	// Check if the hover item has an equipment fragment and if it matches this slot
+	UInv_InventoryItem* HoverInvItem = HoverItem->GetInventoryItem();
+	bool bIsCompatible = false;
+	
+	if (IsValid(HoverInvItem))
+	{
+		const FInv_EquipmentFragment* EquipmentFragment = HoverInvItem->GetItemManifest().GetFragmentOfType<FInv_EquipmentFragment>();
+		if (EquipmentFragment)
+		{
+			bIsCompatible = EquipmentFragment->GetEquipmentType().MatchesTag(EquipmentTypeTag);
+		}
+	}
+	
+	if (bIsCompatible)
 	{
 		SetUnoccupiedTexture();
 		Image_GrayedOutIcon->SetVisibility(ESlateVisibility::Visible);

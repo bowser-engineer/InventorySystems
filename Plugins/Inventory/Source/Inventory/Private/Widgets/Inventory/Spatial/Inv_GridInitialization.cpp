@@ -95,6 +95,11 @@ void UInv_GridInitialization::UnregisterGrid(UInv_InventoryGrid* Grid)
 
 UInv_InventoryGrid* UInv_GridInitialization::GetGridWithHoverItem(const UObject* WorldContext)
 {
+	// Clean up invalid grid references first
+	RegisteredGrids.RemoveAll([](const TWeakObjectPtr<UInv_InventoryGrid>& GridPtr) {
+		return !GridPtr.IsValid();
+	});
+
 	for (auto& GridPtr : RegisteredGrids)
 	{
 		if (UInv_InventoryGrid* Grid = GridPtr.Get())
@@ -102,9 +107,23 @@ UInv_InventoryGrid* UInv_GridInitialization::GetGridWithHoverItem(const UObject*
 			if (Grid->HasHoverItem())
 			{
 				UInv_HoverItem* HoverItem = Grid->GetHoverItem();
-				if (!HoverItem) continue;
+				if (!IsValid(HoverItem)) 
+				{
+					// Clean up invalid hover item reference
+					Grid->ClearHoverItem();
+					continue;
+				}
+				
+				// Check if this grid actually owns the hover item
 				if (HoverItem->GetOwnerGrid() == Grid)
 				{
+					return Grid;
+				}
+				else if (!HoverItem->GetOwnerGrid())
+				{
+					// If hover item has no owner, this grid likely owns it
+					// but the reference got broken - fix it
+					HoverItem->SetOwnerGrid(Grid);
 					return Grid;
 				}
 			}
