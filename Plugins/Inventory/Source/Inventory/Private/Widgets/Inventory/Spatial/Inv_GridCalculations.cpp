@@ -19,7 +19,7 @@ void UInv_GridCalculations::UpdateTileParameters(UInv_InventoryGrid* Grid, const
 	const FIntPoint HoveredTileCoordinates = CalculateHoveredCoordinates(Grid, CanvasPosition, MousePosition);
 	
 	Grid->LastTileParameters = Grid->TileParameters;
-	Grid->TileParameters.TileCoordinats = HoveredTileCoordinates;
+	Grid->TileParameters.TileCoordinates = HoveredTileCoordinates;
 	Grid->TileParameters.TileIndex = UInv_WidgetUtils::GetIndexFromPosition(HoveredTileCoordinates, Grid->Columns);
 	Grid->TileParameters.TileQuadrant = CalculateTileQuadrant(Grid, CanvasPosition, MousePosition);
 	
