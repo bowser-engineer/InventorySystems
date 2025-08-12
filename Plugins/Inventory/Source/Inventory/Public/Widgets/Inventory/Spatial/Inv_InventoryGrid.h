@@ -33,16 +33,12 @@ public:
 
 	EInv_ItemCategory GetItemCategory() const { return ItemCategory; }
 	FInv_SlotAvailabilityResult HasRoomForItem(const UInv_ItemComponent* ItemComponent);
-	void ShowCursor();
-	void HideCursor();
 	void SetOwningCanvas(UCanvasPanel* OwningCanvas);
-	void DropItem();
 	bool HasHoverItem() const;
 	UInv_HoverItem* GetHoverItem() const;
 	float GetTileSize() const { return TileSize; }
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void ClearHoverItem();
-	void AssignHoverItem(UInv_InventoryItem* InventoryItem);
 	void OnHide();
 
 

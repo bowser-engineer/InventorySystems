@@ -31,6 +31,8 @@ bool UInv_GridCrossOperations::TransferFromGrid(UInv_InventoryGrid* TargetGrid, 
 	Result.Item = Item;
 
 	TargetGrid->AddStacks(Result);
+	UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] TransferFromGrid: Item %s transferred to grid %s with stack amount %d"),
+		*Item->GetName(), *TargetGrid->GetName(), StackAmount);
 	return true;
 }
 
@@ -46,7 +48,7 @@ bool UInv_GridCrossOperations::HandleCrossGridTransfer(UInv_InventoryGrid* Targe
 
 	if (!CanAcceptFromGrid(TargetGrid, SourceGrid, Item, StackAmount))
 	{
-		UE_LOG(LogInventory, Warning, TEXT("Cannot transfer item to this grid - category mismatch or no space"));
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Cannot transfer item to this grid - category mismatch or no space"));
 		return false;
 	}
 
@@ -213,12 +215,15 @@ bool UInv_GridCrossOperations::MatchesPreferredCategory(const UInv_InventoryGrid
 {
 	if (!IsValid(Grid) || !IsValid(Item)) return false;
 	
-	if (Grid->ItemCategory == EInv_ItemCategory::Backpack || Grid->ItemCategory == EInv_ItemCategory::Locked) 
-		return true;
+	if (Grid->ItemCategory == EInv_ItemCategory::Backpack || Grid->ItemCategory == EInv_ItemCategory::Locked) return true;
 
 	UE_LOG(LogInventory, Warning, TEXT("Matching Preferred %s to %s"),
 		*UEnum::GetValueAsString(Item->GetItemManifest().GetPreferredItemCategory()), 
 		*UEnum::GetValueAsString(Grid->ItemCategory));
+
+	UE_LOG(LogInventory, Warning, TEXT("Matching Preference: %s"),
+			Item->GetItemManifest().GetItemCategory() == Grid->ItemCategory ? TEXT("true") : TEXT("false"));
+
 
 	return Item->GetItemManifest().GetItemCategory() == Grid->ItemCategory;
 }

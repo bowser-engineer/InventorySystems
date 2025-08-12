@@ -150,6 +150,8 @@ void UInv_GridHoverManagement::PutDownOnIndex(UInv_InventoryGrid* Grid, const in
 {
 	if (!IsValid(Grid) || !IsValid(Grid->HoverItem)) return;
 
+	UE_LOG(LogTemp, Warning, TEXT("Putting down item at index %d"), Index);
+
 	UInv_GridItemPlacement::AddItemAtIndex(Grid, Grid->HoverItem->GetInventoryItem(), Index, 
 										   Grid->HoverItem->IsStackable(), Grid->HoverItem->GetStackCount());
 	UInv_GridItemPlacement::UpdateGridSlots(Grid, Grid->HoverItem->GetInventoryItem(), Index, 

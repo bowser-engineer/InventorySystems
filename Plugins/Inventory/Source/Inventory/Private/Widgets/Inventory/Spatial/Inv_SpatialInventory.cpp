@@ -86,7 +86,7 @@ void UInv_SpatialInventory::EquippedSlottedItemClicked(UInv_EquippedSlottedItem*
 	ClearSlotOfItem(EquippedGridSlot);
 
 	// Assign previously equipped item as the hover item
-	Grid_Backpack->AssignHoverItem(ItemToUnequip);
+	//Grid_Backpack->AssignHoverItem(ItemToUnequip);
 	
 	// Remove of the equipped slotted item from the equipped grid slot
 	RemoveEquippedSlottedItem(EquippedSlottedItem);
@@ -100,7 +100,7 @@ void UInv_SpatialInventory::EquippedSlottedItemClicked(UInv_EquippedSlottedItem*
 
 FReply UInv_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	ActiveGrid->DropItem();
+	//ActiveGrid->DropItem();
 	return FReply::Handled();
 }
 

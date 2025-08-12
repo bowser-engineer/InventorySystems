@@ -37,6 +37,12 @@ void UInv_InventoryGrid::NativeOnInitialized()
 
 void UInv_InventoryGrid::NativeDestruct()
 {
+	// Check if HoverItem is still valid and put it back
+	if (IsValid(HoverItem))
+	{
+		UInv_GridHoverManagement::PutHoverItemBack(this);
+		HoverItem = nullptr;
+	}
 	UInv_GridInitialization::CleanupGrid(this);
 	Super::NativeDestruct();
 }
@@ -244,10 +250,6 @@ void UInv_InventoryGrid::SetOwningCanvas(UCanvasPanel* OwningCanvas)
 	OwningCanvasPanel = OwningCanvas;
 }
 
-void UInv_InventoryGrid::DropItem()
-{
-}
-
 void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
 	UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this);
@@ -267,12 +269,15 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 
 		if (UInv_GridCrossOperations::HandleCrossGridTransfer(this, GridWithHoverItem, OtherHoverItem, GridIndex))
 		{
+			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Item transfer successful"));
 			return;
 		}
 	}
 
 	if (!IsValid(HoverItem)) return;
 	if (!GridSlots.IsValidIndex(ItemDropIndex)) return;
+
+	UE_LOG(LogInventory, Warning, TEXT("OnGridSlotClicked: GridIndex=%d, ItemDropIndex=%d"), GridIndex, ItemDropIndex);
 
 	if (CurrentQueryResult.ValidItem.IsValid() && GridSlots.IsValidIndex(CurrentQueryResult.UpperLeftIndex))
 	{
@@ -360,10 +365,6 @@ void UInv_InventoryGrid::ClearHoverItem()
 	UInv_GridHoverManagement::ClearHoverItem(this);
 }
 
-void UInv_InventoryGrid::AssignHoverItem(UInv_InventoryItem* InventoryItem)
-{
-}
-
 void UInv_InventoryGrid::OnGridSlotHovered(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
 	UInv_GridHighlighting::OnGridSlotHovered(this, GridIndex);
@@ -407,14 +408,6 @@ bool UInv_InventoryGrid::MatchesPreferredCategory(const UInv_InventoryItem* Item
 FInv_SlotAvailabilityResult UInv_InventoryGrid::HasRoomForItem(const UInv_ItemComponent* ItemComponent)
 {
 	return UInv_GridItemPlacement::HasRoomForItem(this, ItemComponent);
-}
-
-void UInv_InventoryGrid::ShowCursor()
-{
-}
-
-void UInv_InventoryGrid::HideCursor()
-{
 }
 
 FInv_SlotAvailabilityResult UInv_InventoryGrid::HasRoomForItem(const UInv_InventoryItem* Item, const int32 StackAmountOverride)
