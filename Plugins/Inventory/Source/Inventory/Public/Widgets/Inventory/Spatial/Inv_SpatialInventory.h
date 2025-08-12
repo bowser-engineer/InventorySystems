@@ -40,6 +40,11 @@ public:
 
 	void ClearSlotOfItem(UInv_EquippedGridSlot* EquippedGridSlot);
 	void RemoveEquippedSlottedItem(UInv_EquippedSlottedItem* EquippedSlottedItem);
+	
+	// Recently unequipped items tracking for swap prevention
+	void AddRecentlyUnequippedItem(UInv_InventoryItem* Item);
+	bool IsRecentlyUnequippedItem(UInv_InventoryItem* Item) const;
+	void ClearRecentlyUnequippedItems();
 
 	// Declare the grids for different inventory sections
 	UPROPERTY(meta = (BindWidget))
@@ -102,4 +107,8 @@ private:
 	void BroadcastSlotClickedDelegates(UInv_InventoryItem* ItemToEquip, UInv_InventoryItem* ItemToUnequip) const;
 	
 	TWeakObjectPtr<UInv_InventoryGrid> ActiveGrid;
+	
+	// Track items that were recently unequipped due to swapping to prevent re-equipping
+	UPROPERTY()
+	TSet<TObjectPtr<UInv_InventoryItem>> RecentlyUnequippedItems;
 };

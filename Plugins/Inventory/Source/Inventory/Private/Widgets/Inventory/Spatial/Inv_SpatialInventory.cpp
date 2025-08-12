@@ -104,6 +104,9 @@ void UInv_SpatialInventory::EquippedSlottedItemClicked(UInv_EquippedSlottedItem*
 	// Clear the equipped grid slot of this item (set its inventory item to nullptr)
 	ClearSlotOfItem(EquippedGridSlot);
 
+	// Track that this item was unequipped due to swapping
+	AddRecentlyUnequippedItem(ItemToUnequip);
+	
 	// Assign previously equipped item as the hover item
 	UInv_GridHoverManagement::AssignHoverItem(Grid_Backpack, ItemToUnequip);
 	
@@ -383,4 +386,24 @@ UInv_ItemDescription* UInv_SpatialInventory::GetEquippedItemDescription()
 		CanvasPanel->AddChild(EquippedItemDescription);
 	}
 	return EquippedItemDescription;
+}
+
+void UInv_SpatialInventory::AddRecentlyUnequippedItem(UInv_InventoryItem* Item)
+{
+	if (IsValid(Item))
+	{
+		RecentlyUnequippedItems.Add(Item);
+		UE_LOG(LogTemp, Warning, TEXT("[AddRecentlyUnequippedItem] Added item %s to recently unequipped list"), *Item->GetName());
+	}
+}
+
+bool UInv_SpatialInventory::IsRecentlyUnequippedItem(UInv_InventoryItem* Item) const
+{
+	return IsValid(Item) && RecentlyUnequippedItems.Contains(Item);
+}
+
+void UInv_SpatialInventory::ClearRecentlyUnequippedItems()
+{
+	UE_LOG(LogTemp, Warning, TEXT("[ClearRecentlyUnequippedItems] Clearing recently unequipped items list"));
+	RecentlyUnequippedItems.Empty();
 }

@@ -416,7 +416,16 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 
 void UInv_InventoryGrid::OnInventoryMenuToggled(bool bOpen)
 {
-	if (!bOpen)
+	if (bOpen)
+	{
+		// Clear the recently unequipped items list when inventory opens
+		UInv_SpatialInventory* SpatialInventory = Cast<UInv_SpatialInventory>(UInv_InventoryStatics::GetInventoryWidget(GetOwningPlayer()));
+		if (IsValid(SpatialInventory))
+		{
+			SpatialInventory->ClearRecentlyUnequippedItems();
+		}
+	}
+	else
 	{
 		// Find the grid with the hover item and recreate the item at its last position
 		if (UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this))
@@ -446,6 +455,16 @@ void UInv_InventoryGrid::OnInventoryMenuToggled(bool bOpen)
 						UInv_SpatialInventory* SpatialInventory = Cast<UInv_SpatialInventory>(UInv_InventoryStatics::GetInventoryWidget(GetOwningPlayer()));
 						if (IsValid(SpatialInventory))
 						{
+							// Check if this item was recently unequipped due to swapping
+							if (SpatialInventory->IsRecentlyUnequippedItem(Item))
+							{
+								UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Item %s was recently unequipped due to swapping, returning to inventory"), *Item->GetName());
+								// Don't re-equip, just return to inventory
+								UInv_GridItemPlacement::AddItemAtIndex(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
+								UInv_GridItemPlacement::UpdateGridSlots(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
+							}
+							else
+							{
 							const FGameplayTag ItemEquipmentType = EquipmentFragment->GetEquipmentType();
 							UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Item equipment type: %s"), *ItemEquipmentType.ToString());
 							bool bReEquipped = false;
@@ -458,10 +477,20 @@ void UInv_InventoryGrid::OnInventoryMenuToggled(bool bOpen)
 									if (ItemEquipmentType.MatchesTag(EquippedSlot->GetEquipmentTypeTag()))
 									{
 										UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Found matching slot!"));
-										// Get any currently equipped item to unequip it first
+										// Get any currently equipped item to check if slot was swapped
 										UInv_InventoryItem* CurrentlyEquippedItem = EquippedSlot->GetInventoryItem().Get();
+										UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] CurrentlyEquippedItem: %s, Item we're trying to re-equip: %s"), 
+											*GetNameSafe(CurrentlyEquippedItem), *GetNameSafe(Item));
 									
-									// Clear the slot first if it has an item
+									// Check if the slot is already occupied by a different item (due to swapping)
+									if (IsValid(CurrentlyEquippedItem) && CurrentlyEquippedItem != Item)
+									{
+										UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Slot is occupied by different item %s, returning original item to inventory"), *CurrentlyEquippedItem->GetName());
+										// Slot is taken by a different item, just return our item to inventory
+										break; // This will cause bReEquipped to remain false and trigger fallback
+									}
+									
+									// Clear the slot first if it has an item (should be the same item or empty)
 									if (IsValid(CurrentlyEquippedItem))
 									{
 										SpatialInventory->ClearSlotOfItem(EquippedSlot);
@@ -505,6 +534,7 @@ void UInv_InventoryGrid::OnInventoryMenuToggled(bool bOpen)
 								UInv_GridItemPlacement::AddItemAtIndex(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
 								UInv_GridItemPlacement::UpdateGridSlots(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
 							}
+							} // Close the else block for recently unequipped check
 						}
 						else
 						{
