@@ -104,11 +104,6 @@ void UInv_InventoryGrid::OnTileParametersUpdated(const FInv_TileParameters& Para
 	}
 }
 
-FIntPoint UInv_InventoryGrid::CalculateStartingCoordinate(const FIntPoint& Coordinate, const FIntPoint& Dimensions, const EInv_TileQuadrant Quadrant) const
-{
-	return FIntPoint();
-}
-
 FInv_SpaceQueryResult UInv_InventoryGrid::CheckHoverPosition(const FIntPoint& Position, const FIntPoint& Dimensions)
 {
 	FInv_SpaceQueryResult Result;
@@ -135,11 +130,6 @@ FInv_SpaceQueryResult UInv_InventoryGrid::CheckHoverPosition(const FIntPoint& Po
 	}
 
 	return Result;
-}
-
-bool UInv_InventoryGrid::CursorExitedCanvas(const FVector2D& BoundaryPos, const FVector2D& BoundarySize, const FVector2D& Location)
-{
-	return false;
 }
 
 void UInv_InventoryGrid::AddStacks(const FInv_SlotAvailabilityResult& Result)
@@ -327,11 +317,6 @@ UUserWidget* UInv_InventoryGrid::GetHiddenCursorWidget()
 	return HiddenCursorWidget;
 }
 
-bool UInv_InventoryGrid::IsSameStackable(const UInv_InventoryItem* ClickedInventoryItem) const
-{
-	return false;
-}
-
 void UInv_InventoryGrid::SwapWithHoverItem(UInv_InventoryItem* ClickedInventoryItem, const int32 GridIndex)
 {
 	if (!IsValid(HoverItem)) return;
@@ -409,137 +394,9 @@ void UInv_InventoryGrid::HighlightSlots(const int32 Index, const FIntPoint& Dime
 	UInv_GridHighlighting::HighlightSlots(this, Index, Dimensions);
 }
 
-void UInv_InventoryGrid::UnHighlightSlots(const int32 Index, const FIntPoint& Dimensions)
-{
-}
-
-void UInv_InventoryGrid::ChangeHoverType(const int32 Index, const FIntPoint& Dimensions, EInv_GridSlotState GridSlotState)
-{
-}
-
-void UInv_InventoryGrid::PutDownOnIndex(const int32 Index)
-{
-}
-
 bool UInv_InventoryGrid::MatchesCategory(const UInv_InventoryItem* Item) const
 {
 	return UInv_GridCrossOperations::MatchesCategory(this, Item);
-}
-
-void UInv_InventoryGrid::ConstructGrid()
-{
-}
-
-FVector2D UInv_InventoryGrid::GetDrawSize(const FInv_GridFragment* GridFragment) const
-{
-	return FVector2D();
-}
-
-void UInv_InventoryGrid::SetSlottedItemImage(const UInv_SlottedItem* SlottedItem, const FInv_GridFragment* GridFragment, const FInv_ImageFragment* ImageFragment) const
-{
-}
-
-void UInv_InventoryGrid::AddItemAtIndex(UInv_InventoryItem* Item, const int32 Index, const bool bStackable, const int32 StackAmount)
-{
-}
-
-UInv_SlottedItem* UInv_InventoryGrid::CreateSlottedItem(UInv_InventoryItem* Item, const bool bStackable, const int32 StackAmount, const FInv_GridFragment* GridFragment, const FInv_ImageFragment* ImageFragment, const int32 Index)
-{
-	return nullptr;
-}
-
-void UInv_InventoryGrid::AddSlottedItemToCanvas(const int32 Index, const FInv_GridFragment* GridFragment, UInv_SlottedItem* SlottedItem) const
-{
-}
-
-void UInv_InventoryGrid::UpdateGridSlots(UInv_InventoryItem* NewItem, const int32 Index, bool bStackableItem, const int32 StackAmount)
-{
-}
-
-bool UInv_InventoryGrid::IsIndexClaimed(const TSet<int32>& CheckedIndices, const int32 Index) const
-{
-	return false;
-}
-
-bool UInv_InventoryGrid::HasRoomAtIndex(const UInv_GridSlot* GridSlot, const FIntPoint& Dimensions, const TSet<int32>& CheckedIndices, TSet<int32>& OutTentativelyClaimed, const FGameplayTag& ItemType, const int32 MaxStackSize)
-{
-	return false;
-}
-
-bool UInv_InventoryGrid::CheckSlotConstraints(const UInv_GridSlot* GridSlot, const UInv_GridSlot* SubGridSlot, const TSet<int32>& CheckedIndices, TSet<int32>& OutTentativelyClaimed, const FGameplayTag& ItemType, const int32 MaxStackSize) const
-{
-	return false;
-}
-
-FIntPoint UInv_InventoryGrid::GetItemDimensions(const FInv_ItemManifest& Manifest) const
-{
-	return FIntPoint();
-}
-
-bool UInv_InventoryGrid::HasValidItem(const UInv_GridSlot* GridSlot) const
-{
-	return false;
-}
-
-bool UInv_InventoryGrid::IsUpperLeftSlot(const UInv_GridSlot* GridSlot, const UInv_GridSlot* SubGridSlot) const
-{
-	return false;
-}
-
-bool UInv_InventoryGrid::DoesItemTypeMatch(const UInv_InventoryItem* SubItem, const FGameplayTag& ItemType) const
-{
-	return false;
-}
-
-bool UInv_InventoryGrid::IsInGridBounds(const int32 StartIndex, const FIntPoint& ItemDimensions) const
-{
-	return false;
-}
-
-int32 UInv_InventoryGrid::DetermineFillAmountForSlot(const bool bStackable, const int32 MaxStackSize, const int32 AmountToFill, const UInv_GridSlot* GridSlot) const
-{
-	return int32();
-}
-
-int32 UInv_InventoryGrid::GetStackAmount(const UInv_GridSlot* GridSlot) const
-{
-	return int32();
-}
-
-bool UInv_InventoryGrid::IsRightClick(const FPointerEvent& MouseEvent) const
-{
-	return false;
-}
-
-bool UInv_InventoryGrid::IsLeftClick(const FPointerEvent& MouseEvent) const
-{
-	return false;
-}
-
-void UInv_InventoryGrid::PickUp(UInv_InventoryItem* ClickedInventoryItem, const int32 GridIndex)
-{
-}
-
-void UInv_InventoryGrid::AssignHoverItem(UInv_InventoryItem* InventoryItem, const int32 GridIndex, const int32 PreviousGridIndex)
-{
-}
-
-void UInv_InventoryGrid::RemoveItemFromGrid(UInv_InventoryItem* InventoryItem, const int32 GridIndex)
-{
-}
-
-void UInv_InventoryGrid::UpdateTileParameters(const FVector2D& CanvasPosition, const FVector2D& MousePosition)
-{
-}
-
-FIntPoint UInv_InventoryGrid::CalculateHoveredCoordinates(const FVector2D& CanvasPosition, const FVector2D& MousePosition) const
-{
-	return FIntPoint();
-}
-
-EInv_TileQuadrant UInv_InventoryGrid::CalculateTileQuadrant(const FVector2D& CanvasPosition, const FVector2D& MousePosition) const
-{
-	return EInv_TileQuadrant();
 }
 
 bool UInv_InventoryGrid::MatchesPreferredCategory(const UInv_InventoryItem* Item) const
@@ -568,38 +425,4 @@ FInv_SlotAvailabilityResult UInv_InventoryGrid::HasRoomForItem(const UInv_Invent
 FInv_SlotAvailabilityResult UInv_InventoryGrid::HasRoomForItem(const FInv_ItemManifest& Manifest, const int32 StackAmountOverride)
 {
 	return UInv_GridItemPlacement::HasRoomForItem(this, Manifest, StackAmountOverride);
-}
-bool UInv_InventoryGrid::ShouldSwapStackCounts(const int32 RoomInClickedSlot, const int32 HoveredStackCount, const int32 MaxStackSize) const
-{
-	return false;
-}
-
-void UInv_InventoryGrid::SwapStackCounts(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
-{
-}
-
-bool UInv_InventoryGrid::ShouldConsumeHoverItemStacks(const int32 HoveredStackCount, const int32 RoomInClickedSlot) const
-{
-	return false;
-}
-
-void UInv_InventoryGrid::ConsumeHoverItemStacks(const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
-{
-}
-
-bool UInv_InventoryGrid::ShouldFillInStack(const int32 RoomInClickedSlot, const int32 HoveredStackCount) const
-{
-	return false;
-}
-
-void UInv_InventoryGrid::FillInStack(const int32 FillAmount, const int32 Remainder, const int32 Index)
-{
-}
-
-void UInv_InventoryGrid::CreateItemPopUp(const int32 GridIndex)
-{
-}
-
-void UInv_InventoryGrid::PutHoverItemBack()
-{
 }
