@@ -224,7 +224,7 @@ FInv_SlotAvailabilityResult UInv_SpatialInventory::HasRoomForItem(UInv_ItemCompo
 		case EInv_ItemCategory::Satchel:
 			return Grid_Satchel->HasRoomForItem(ItemComponent);
 		case EInv_ItemCategory::Quiver:
-			return Grid_Satchel->HasRoomForItem(ItemComponent);
+			return Grid_Quiver->HasRoomForItem(ItemComponent);
 		default:
 			UE_LOG(LogInventory, Error, TEXT("ItemComponent doesn't have a valid Item Category."))
 			return FInv_SlotAvailabilityResult();
