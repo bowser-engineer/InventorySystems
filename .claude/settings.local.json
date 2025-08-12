@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:\\Program Files\\Epic Games\\UE_5.4\\Engine\\Build\\BatchFiles\\Build.bat\" InventorySystemsEditor Win64 Development -Project=\"C:\\Users\\Bruce Vang\\Documents\\Unreal Projects\\InventorySystems\\InventorySystems.uproject\" -WaitMutex -FromMsBuild)",
+      "Bash(dir)",
+      "Bash(cmd:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

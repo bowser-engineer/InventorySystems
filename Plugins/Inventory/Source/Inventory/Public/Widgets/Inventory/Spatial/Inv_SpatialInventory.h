@@ -33,6 +33,13 @@ public:
 	virtual UInv_HoverItem* GetHoverItem() const override;
 	virtual float GetTileSize() const override;
 
+	const TArray<TObjectPtr<UInv_EquippedGridSlot>>& GetEquippedGridSlots() const { return EquippedGridSlots; }
+
+	UFUNCTION()
+	void EquippedSlottedItemClicked(UInv_EquippedSlottedItem* EquippedSlottedItem);
+
+	void ClearSlotOfItem(UInv_EquippedGridSlot* EquippedGridSlot);
+	void RemoveEquippedSlottedItem(UInv_EquippedSlottedItem* EquippedSlottedItem);
 
 	// Declare the grids for different inventory sections
 	UPROPERTY(meta = (BindWidget))
@@ -85,17 +92,12 @@ private:
 
 	UFUNCTION()
 	void EquippedGridSlotClicked(UInv_EquippedGridSlot* EquippedGridSlot, const FGameplayTag& EquipmentTypeTag);
-
-	UFUNCTION()
-	void EquippedSlottedItemClicked(UInv_EquippedSlottedItem* EquippedSlottedItem);
 	
 	void SetItemDescriptionSizeAndPosition(UInv_ItemDescription* Description, UCanvasPanel* Canvas) const;
 	void SetEquippedItemDescriptionSizeAndPosition(UInv_ItemDescription* Description, UInv_ItemDescription* EquippedDescription, UCanvasPanel* Canvas) const;
 	bool CanEquipHoverItem(UInv_EquippedGridSlot* EquippedGridSlot, const FGameplayTag& EquipmentTypeTag) const;
 	bool CanEquipHoverItemInSlot(UInv_EquippedGridSlot* EquippedGridSlot, UInv_InventoryItem* ItemToEquip) const;
 	UInv_EquippedGridSlot* FindSlotWithEquippedItem(UInv_InventoryItem* EquippedItem) const;
-	void ClearSlotOfItem(UInv_EquippedGridSlot* EquippedGridSlot);
-	void RemoveEquippedSlottedItem(UInv_EquippedSlottedItem* EquippedSlottedItem);
 	void MakeEquippedSlottedItem(UInv_EquippedSlottedItem* EquippedSlottedItem, UInv_EquippedGridSlot* EquippedGridSlot, UInv_InventoryItem* ItemToEquip);
 	void BroadcastSlotClickedDelegates(UInv_InventoryItem* ItemToEquip, UInv_InventoryItem* ItemToUnequip) const;
 	

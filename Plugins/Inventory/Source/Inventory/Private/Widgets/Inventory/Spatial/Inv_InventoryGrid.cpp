@@ -8,8 +8,11 @@
 #include "Widgets/Inventory/Spatial/Inv_GridPopupInteractions.h"
 
 #include "Widgets/Inventory/GridSlots/Inv_GridSlot.h"
+#include "Widgets/Inventory/GridSlots/Inv_EquippedGridSlot.h"
 #include "Widgets/Inventory/HoverItem/Inv_HoverItem.h"
 #include "Widgets/Inventory/SlottedItems/Inv_SlottedItem.h"
+#include "Widgets/Inventory/SlottedItems/Inv_EquippedSlottedItem.h"
+#include "Widgets/Inventory/Spatial/Inv_SpatialInventory.h"
 #include "Widgets/ItemPopUp/Inv_ItemPopUp.h"
 
 #include "Widgets/Utils/Inv_WidgetUtils.h"
@@ -432,15 +435,96 @@ void UInv_InventoryGrid::OnInventoryMenuToggled(bool bOpen)
 				
 				if (IsValid(Item) && IsValid(LastGrid))
 				{
-					// Clear the hover item first
+					// Check if this is an equipped item that should be re-equipped
+					const FInv_EquipmentFragment* EquipmentFragment = Item->GetItemManifest().GetFragmentOfType<FInv_EquipmentFragment>();
+					UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Item %s has EquipmentFragment: %s"), 
+						*Item->GetName(), EquipmentFragment ? TEXT("YES") : TEXT("NO"));
+					if (EquipmentFragment)
+					{
+						UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Item is equipped item, attempting to re-equip"));
+						// This is an equipped item, try to re-equip it
+						UInv_SpatialInventory* SpatialInventory = Cast<UInv_SpatialInventory>(UInv_InventoryStatics::GetInventoryWidget(GetOwningPlayer()));
+						if (IsValid(SpatialInventory))
+						{
+							const FGameplayTag ItemEquipmentType = EquipmentFragment->GetEquipmentType();
+							UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Item equipment type: %s"), *ItemEquipmentType.ToString());
+							bool bReEquipped = false;
+							
+							for (UInv_EquippedGridSlot* EquippedSlot : SpatialInventory->GetEquippedGridSlots())
+							{
+								if (IsValid(EquippedSlot))
+								{
+									UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Checking slot with type: %s"), *EquippedSlot->GetEquipmentTypeTag().ToString());
+									if (ItemEquipmentType.MatchesTag(EquippedSlot->GetEquipmentTypeTag()))
+									{
+										UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Found matching slot!"));
+										// Get any currently equipped item to unequip it first
+										UInv_InventoryItem* CurrentlyEquippedItem = EquippedSlot->GetInventoryItem().Get();
+									
+									// Clear the slot first if it has an item
+									if (IsValid(CurrentlyEquippedItem))
+									{
+										SpatialInventory->ClearSlotOfItem(EquippedSlot);
+										UInv_EquippedSlottedItem* CurrentEquippedSlottedItem = EquippedSlot->GetEquippedSlottedItem();
+										if (IsValid(CurrentEquippedSlottedItem))
+										{
+											SpatialInventory->RemoveEquippedSlottedItem(CurrentEquippedSlottedItem);
+										}
+									}
+									
+									// Re-equip the item
+									const float LocalTileSize = SpatialInventory->GetTileSize();
+									UInv_EquippedSlottedItem* EquippedSlottedItem = EquippedSlot->OnItemEquipped(
+										Item,
+										EquippedSlot->GetEquipmentTypeTag(),
+										LocalTileSize
+									);
+									if (IsValid(EquippedSlottedItem))
+									{
+										EquippedSlottedItem->OnEquippedSlottedItemClicked.AddDynamic(SpatialInventory, &UInv_SpatialInventory::EquippedSlottedItemClicked);
+										
+										// Notify the server about the re-equipment
+										UInv_InventoryComponent* LocalInventoryComponent = UInv_InventoryStatics::GetInventoryComponent(GetOwningPlayer());
+										if (IsValid(LocalInventoryComponent))
+										{
+											LocalInventoryComponent->Server_EquipSlotClicked(Item, CurrentlyEquippedItem);
+										}
+										
+										bReEquipped = true;
+										UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Successfully re-equipped item %s"), *Item->GetName());
+									}
+									break;
+									}
+								}
+							}
+							
+							if (!bReEquipped)
+							{
+								UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Could not re-equip item, returning to inventory"));
+								// Fallback to normal inventory placement
+								UInv_GridItemPlacement::AddItemAtIndex(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
+								UInv_GridItemPlacement::UpdateGridSlots(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
+							}
+						}
+						else
+						{
+							// Fallback to normal inventory placement
+							UInv_GridItemPlacement::AddItemAtIndex(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
+							UInv_GridItemPlacement::UpdateGridSlots(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
+						}
+					}
+					else
+					{
+						// Regular item, recreate at its last position
+						UInv_GridItemPlacement::AddItemAtIndex(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
+						UInv_GridItemPlacement::UpdateGridSlots(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
+						
+						UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Recreated regular item %s at position %d in grid %s"), 
+							*Item->GetName(), LastPosition, *GetNameSafe(LastGrid));
+					}
+					
+					// Clear the hover item after handling
 					UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
-					
-					// Recreate the item at its last position
-					UInv_GridItemPlacement::AddItemAtIndex(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
-					UInv_GridItemPlacement::UpdateGridSlots(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
-					
-					UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Recreated item %s at position %d in grid %s"), 
-						*Item->GetName(), LastPosition, *GetNameSafe(LastGrid));
 				}
 				else
 				{

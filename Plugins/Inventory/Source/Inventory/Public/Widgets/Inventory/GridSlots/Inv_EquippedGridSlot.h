@@ -23,6 +23,7 @@ public:
 
 	UInv_EquippedSlottedItem* OnItemEquipped(UInv_InventoryItem* Item, const FGameplayTag& EquipmentTag, float TileSize);
 	void SetEquippedSlottedItem(UInv_EquippedSlottedItem* Item) { EquippedSlottedItem = Item; }
+	UInv_EquippedSlottedItem* GetEquippedSlottedItem() const { return EquippedSlottedItem; }
 	
 	FGameplayTag GetEquipmentTypeTag() const { return EquipmentTypeTag; }
 
