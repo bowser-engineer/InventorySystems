@@ -31,9 +31,14 @@ void UInv_InventoryComponent::TryAddItem(UInv_ItemComponent* ItemComponent)
 	TArray<EInv_ItemCategory> CategoriesToTry;
 	EInv_ItemCategory ItemCategory = UInv_InventoryStatics::GetPreferredItemCategoryFromItemComp(ItemComponent);
 	CategoriesToTry.Add(ItemCategory);
-	if (ItemCategory != EInv_ItemCategory::Backpack && ItemCategory != EInv_ItemCategory::Locked)
+	
+	// Always add Backpack and Locked as fallbacks if they're not already the preferred category
+	if (ItemCategory != EInv_ItemCategory::Backpack)
 	{
 		CategoriesToTry.Add(EInv_ItemCategory::Backpack);
+	}
+	if (ItemCategory != EInv_ItemCategory::Locked)
+	{
 		CategoriesToTry.Add(EInv_ItemCategory::Locked);
 	}
 
