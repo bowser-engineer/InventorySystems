@@ -8,15 +8,20 @@ namespace GameItems
 	{
 		// Weapon categories
 
-		namespace Weapons
+		namespace MainWeapons
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Axe)
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Sword)
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Knife)
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Bloodthorn)
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(NightsEdge)
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Shadowbane)
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Staff)
+		}
+
+		namespace OffhandWeapons
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Shield)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Torch)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Spellbook)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Wand)
 		}
 
 		// Armor categories

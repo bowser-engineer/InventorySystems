@@ -5,16 +5,22 @@ namespace GameItems
 
 	namespace Equipment
 	{
-		// Weapon categories
-		namespace Weapons
+		// Main weapons
+		namespace MainWeapons
 		{
-			UE_DEFINE_GAMEPLAY_TAG(Axe, "GameItems.Equipment.Weapons.Axe")
-				UE_DEFINE_GAMEPLAY_TAG(Sword, "GameItems.Equipment.Weapons.Sword")
-				UE_DEFINE_GAMEPLAY_TAG(Knife, "GameItems.Equipment.Weapons.Knife")
-				UE_DEFINE_GAMEPLAY_TAG(Bloodthorn, "GameItems.Equipment.Weapons.Bloodthorn")
-				UE_DEFINE_GAMEPLAY_TAG(NightsEdge, "GameItems.Equipment.Weapons.NightsEdge")
-				UE_DEFINE_GAMEPLAY_TAG(Shadowbane, "GameItems.Equipment.Weapons.Shadowbane")
-				UE_DEFINE_GAMEPLAY_TAG(Staff, "GameItems.Equipment.Weapons.Staff")
+			UE_DEFINE_GAMEPLAY_TAG(Axe, "GameItems.Equipment.Weapons.Axe");
+			UE_DEFINE_GAMEPLAY_TAG(Sword, "GameItems.Equipment.Weapons.Sword");
+			UE_DEFINE_GAMEPLAY_TAG(Knife, "GameItems.Equipment.Weapons.Knife");
+			UE_DEFINE_GAMEPLAY_TAG(Staff, "GameItems.Equipment.Weapons.Staff");
+		}
+
+		// Offhand weapons
+		namespace OffhandWeapons
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Shield, "GameItems.Equipment.OffhandWeapons.Shield");
+			UE_DEFINE_GAMEPLAY_TAG(Torch, "GameItems.Equipment.OffhandWeapons.Torch");
+			UE_DEFINE_GAMEPLAY_TAG(Spellbook, "GameItems.Equipment.OffhandWeapons.Spellbook");
+			UE_DEFINE_GAMEPLAY_TAG(Wand, "GameItems.Equipment.OffhandWeapons.Wand");
 		}
 
 		// Armor categories

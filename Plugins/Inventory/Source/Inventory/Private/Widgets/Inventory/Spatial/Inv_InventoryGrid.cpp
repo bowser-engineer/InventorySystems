@@ -89,7 +89,7 @@ void UInv_InventoryGrid::OnTileParametersUpdated(const FInv_TileParameters& Para
 	if (!IsValid(HoverItem)) return;
 
 	const FIntPoint Dimensions = HoverItem->GetGridDimensions();
-	const FIntPoint StartingCoordinate = UInv_GridCalculations::CalculateStartingCoordinate(Parameters.TileCoordinats, Dimensions, Parameters.TileQuadrant);
+	const FIntPoint StartingCoordinate = UInv_GridCalculations::CalculateStartingCoordinate(Parameters.TileCoordinates, Dimensions, Parameters.TileQuadrant);
 	ItemDropIndex = UInv_WidgetUtils::GetIndexFromPosition(StartingCoordinate, Columns);
 
 	CurrentQueryResult = CheckHoverPosition(StartingCoordinate, Dimensions);
