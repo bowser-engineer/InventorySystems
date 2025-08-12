@@ -95,6 +95,9 @@ bool UInv_GridCrossOperations::HandleCrossGridStacking(UInv_InventoryGrid* Targe
 	UInv_InventoryItem* Item = LocalHoverItem->GetInventoryItem();
 	if (!IsValid(Item) || !Item->IsStackable()) return false;
 
+	// Check if the target grid accepts this item category (same validation as non-stackable items)
+	if (!MatchesPreferredCategory(TargetGrid, Item)) return false;
+
 	if (const FInv_StackableFragment* StackableFragment = Item->GetItemManifest().GetFragmentOfType<FInv_StackableFragment>()) 
 	{
 		const int32 MaxStackSize = StackableFragment->GetMaxStackSize();
@@ -121,6 +124,21 @@ bool UInv_GridCrossOperations::HandleCrossGridStacking(UInv_InventoryGrid* Targe
 			}
 			else 
 			{
+				// Set the target grid's SourceGrid to point to the source grid for future transfers
+				if (UInv_InventoryGrid* LocalHoverGrid = LocalHoverItem->GetOwnerGrid())
+				{
+					if (LocalHoverGrid->SourceGrid.IsValid() && LocalHoverGrid->SourceGrid.Get() != LocalHoverGrid)
+					{
+						TargetGrid->SourceGrid = LocalHoverGrid->SourceGrid;
+						UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Stacking: Set TargetGrid SourceGrid to: %s"), *GetNameSafe(LocalHoverGrid->SourceGrid.Get()));
+					}
+					else
+					{
+						TargetGrid->SourceGrid = LocalHoverGrid;
+						UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Stacking: Set TargetGrid SourceGrid to LocalHoverGrid: %s"), *GetNameSafe(LocalHoverGrid));
+					}
+				}
+
 				// Clear hover item from the source grid that owns it
 				if (UInv_InventoryGrid* LocalHoverGrid = LocalHoverItem->GetOwnerGrid())
 				{
@@ -200,6 +218,21 @@ bool UInv_GridCrossOperations::PlaceItemFromOtherGrid(UInv_InventoryGrid* Target
 
 	UInv_GridItemPlacement::AddItemAtIndex(TargetGrid, Item, GridIndex, bIsStackable, StackAmount);
 	UInv_GridItemPlacement::UpdateGridSlots(TargetGrid, Item, GridIndex, bIsStackable, StackAmount);
+
+	// Set the target grid's SourceGrid to point to the source grid for future transfers
+	if (UInv_InventoryGrid* LocalHoverGrid = HoverItem->GetOwnerGrid())
+	{
+		if (LocalHoverGrid->SourceGrid.IsValid() && LocalHoverGrid->SourceGrid.Get() != LocalHoverGrid)
+		{
+			TargetGrid->SourceGrid = LocalHoverGrid->SourceGrid;
+			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Set TargetGrid SourceGrid to: %s"), *GetNameSafe(LocalHoverGrid->SourceGrid.Get()));
+		}
+		else
+		{
+			TargetGrid->SourceGrid = LocalHoverGrid;
+			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Set TargetGrid SourceGrid to LocalHoverGrid: %s"), *GetNameSafe(LocalHoverGrid));
+		}
+	}
 
 	// Clear hover item from the source grid that owns it
 	if (UInv_InventoryGrid* LocalHoverGrid = HoverItem->GetOwnerGrid())
@@ -327,17 +360,22 @@ bool UInv_GridCrossOperations::MatchesPreferredCategory(const UInv_InventoryGrid
 {
 	if (!IsValid(Grid) || !IsValid(Item)) return false;
 	
-	if (Grid->ItemCategory == EInv_ItemCategory::Backpack || Grid->ItemCategory == EInv_ItemCategory::Locked) return true;
+	// Backpack and Locked grids accept any item category
+	if (Grid->ItemCategory == EInv_ItemCategory::Backpack || Grid->ItemCategory == EInv_ItemCategory::Locked) 
+	{
+		UE_LOG(LogInventory, Warning, TEXT("Grid %s accepts any category - allowing transfer"), *UEnum::GetValueAsString(Grid->ItemCategory));
+		return true;
+	}
 
+	// Satchel and Quiver grids only accept their specific preferred category
 	UE_LOG(LogInventory, Warning, TEXT("Matching Preferred %s to %s"),
-		*UEnum::GetValueAsString(Item->GetItemManifest().GetPreferredItemCategory()), 
+		*UEnum::GetValueAsString(Item->GetItemManifest().GetItemCategory()), 
 		*UEnum::GetValueAsString(Grid->ItemCategory));
 
-	UE_LOG(LogInventory, Warning, TEXT("Matching Preference: %s"),
-			Item->GetItemManifest().GetItemCategory() == Grid->ItemCategory ? TEXT("true") : TEXT("false"));
+	bool bMatches = Item->GetItemManifest().GetItemCategory() == Grid->ItemCategory;
+	UE_LOG(LogInventory, Warning, TEXT("Matching Preference: %s"), bMatches ? TEXT("true") : TEXT("false"));
 
-
-	return Item->GetItemManifest().GetItemCategory() == Grid->ItemCategory;
+	return bMatches;
 }
 
 bool UInv_GridCrossOperations::AreItemsStackable(const UInv_InventoryItem* Item1, const UInv_InventoryItem* Item2)

@@ -10,6 +10,11 @@
 #include "Items/Inv_InventoryItem.h"
 #include "InventoryManagement/Components/Inv_InventoryComponent.h"
 
+#include "Blueprint/WidgetLayoutLibrary.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
+
+
 void UInv_GridHoverManagement::AssignHoverItem(UInv_InventoryGrid* Grid, UInv_InventoryItem* InventoryItem)
 {
 	if (!IsValid(Grid) || !IsValid(InventoryItem)) return;
@@ -59,7 +64,20 @@ void UInv_GridHoverManagement::PickUp(UInv_InventoryGrid* Grid, UInv_InventoryIt
 	AssignHoverItem(Grid, ClickedInventoryItem, GridIndex, GridIndex);
 	UInv_GridItemPlacement::RemoveItemFromGrid(Grid, ClickedInventoryItem, GridIndex);
 
-	Grid->SourceGrid = Grid;
+	// Only set SourceGrid to self if there's no existing valid SourceGrid (preserve the chain)
+	if (!Grid->SourceGrid.IsValid())
+	{
+		Grid->SourceGrid = Grid;
+		UE_LOG(LogTemp, Warning, TEXT("[PickUp] Set SourceGrid to self: %s"), *GetNameSafe(Grid));
+	}
+	else if (Grid->SourceGrid.Get() != Grid)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PickUp] Preserving existing SourceGrid: %s"), *GetNameSafe(Grid->SourceGrid.Get()));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PickUp] SourceGrid already points to self: %s"), *GetNameSafe(Grid));
+	}
 }
 
 void UInv_GridHoverManagement::ClearHoverItem(UInv_InventoryGrid* Grid)
@@ -99,9 +117,42 @@ void UInv_GridHoverManagement::ClearHoverItem(UInv_InventoryGrid* Grid)
 
 void UInv_GridHoverManagement::PutHoverItemBack(UInv_InventoryGrid* Grid)
 {
+	static double LastCallTime = 0.0;
+	static int32 CallCount = 0;
+	double CurrentTime = FPlatformTime::Seconds();
+	
+	// Reset counter if more than 0.5 seconds have passed
+	if (CurrentTime - LastCallTime > 0.5)
+	{
+		CallCount = 0;
+	}
+	
+	CallCount++;
+	LastCallTime = CurrentTime;
+	
+	UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Called for Grid: %s (Call #%d at time %.3f)"), 
+		*GetNameSafe(Grid), CallCount, CurrentTime);
+	
+	// Guard against mass cleanup calls - only allow if there's actually a hover item somewhere
+	UInv_InventoryGrid* ActualHoverGrid = UInv_GridInitialization::GetGridWithHoverItem(Grid);
+	if (!ActualHoverGrid)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] GUARD: No hover item found anywhere - ignoring cleanup call for %s"), *GetNameSafe(Grid));
+		return;
+	}
+	
+	// Additional guard: only proceed if this grid is the one with the hover item OR if it's being called appropriately
+	if (ActualHoverGrid != Grid && CallCount > 1)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] GUARD: Mass cleanup detected - Grid %s doesn't have hover item (belongs to %s), ignoring call #%d"), 
+			*GetNameSafe(Grid), *GetNameSafe(ActualHoverGrid), CallCount);
+		return;
+	}
+	
 	UInv_InventoryGrid* HoverGrid = UInv_GridInitialization::GetGridWithHoverItem(Grid);
 	if (!IsValid(HoverGrid) || !IsValid(HoverGrid->HoverItem))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] No valid hover grid or hover item found"));
 		return;
 	}
 
@@ -113,26 +164,76 @@ void UInv_GridHoverManagement::PutHoverItemBack(UInv_InventoryGrid* Grid)
 		return;
 	}
 
-	if (Grid->SourceGrid.IsValid() && Grid->SourceGrid.Get() != Grid)
+	if (HoverGrid->SourceGrid.IsValid() && HoverGrid->SourceGrid.Get() != HoverGrid)
 	{
-		UInv_InventoryGrid* SourceGridPtr = Grid->SourceGrid.Get();
+		UInv_InventoryGrid* SourceGridPtr = HoverGrid->SourceGrid.Get();
+		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Trying to return item to SourceGrid: %s"), *GetNameSafe(SourceGridPtr));
+		
 		FInv_SlotAvailabilityResult Result = UInv_GridItemPlacement::HasRoomForItem(SourceGridPtr, LocalHoverItem->GetInventoryItem(),
 			LocalHoverItem->GetStackCount());
+
+		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] SourceGrid HasRoomForItem result: TotalRoomToFill=%d"), Result.TotalRoomToFill);
 
 		if (Result.TotalRoomToFill > 0)
 		{
 			Result.Item = LocalHoverItem->GetInventoryItem();
+			UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Calling AddStacks on SourceGrid"));
 			SourceGridPtr->AddStacks(Result);
 			ClearHoverItem(HoverGrid);
+			
+			// Force UI refresh of the source grid to ensure visual updates
+			if (SourceGridPtr->CanvasPanel)
+			{
+				SourceGridPtr->CanvasPanel->ForceLayoutPrepass();
+				UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Forced UI refresh on SourceGrid: %s"), *GetNameSafe(SourceGridPtr));
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] No CanvasPanel found on SourceGrid: %s"), *GetNameSafe(SourceGridPtr));
+			}
+			
+			UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Successfully returned item to SourceGrid"));
 			return;
 		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] SourceGrid has no room, trying HoverGrid"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] No valid SourceGrid, using HoverGrid"));
 	}
 
-	FInv_SlotAvailabilityResult Result = UInv_GridItemPlacement::HasRoomForItem(Grid, LocalHoverItem->GetInventoryItem(),
+	FInv_SlotAvailabilityResult Result = UInv_GridItemPlacement::HasRoomForItem(HoverGrid, LocalHoverItem->GetInventoryItem(),
 		LocalHoverItem->GetStackCount());
 	Result.Item = LocalHoverItem->GetInventoryItem();
 
-	Grid->AddStacks(Result);
+	UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] HoverGrid HasRoomForItem result: TotalRoomToFill=%d"), Result.TotalRoomToFill);
+	
+	if (Result.TotalRoomToFill > 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Calling AddStacks on HoverGrid"));
+		HoverGrid->AddStacks(Result);
+		
+		// Force UI refresh of the hover grid to ensure visual updates
+		if (HoverGrid->CanvasPanel)
+		{
+			HoverGrid->CanvasPanel->ForceLayoutPrepass();
+			UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Forced UI refresh on HoverGrid: %s"), *GetNameSafe(HoverGrid));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] No CanvasPanel found on HoverGrid: %s"), *GetNameSafe(HoverGrid));
+		}
+		
+		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Successfully returned item to HoverGrid"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] ERROR: No room in any grid! Item will be lost!"));
+	}
+	
 	ClearHoverItem(HoverGrid);
 }
 

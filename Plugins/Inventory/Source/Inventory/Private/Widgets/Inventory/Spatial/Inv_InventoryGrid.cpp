@@ -37,10 +37,9 @@ void UInv_InventoryGrid::NativeOnInitialized()
 
 void UInv_InventoryGrid::NativeDestruct()
 {
-	// Check if HoverItem is still valid and put it back
+	// Clear hover item reference without returning it
 	if (IsValid(HoverItem))
 	{
-		UInv_GridHoverManagement::PutHoverItemBack(this);
 		HoverItem = nullptr;
 	}
 	UInv_GridInitialization::CleanupGrid(this);
@@ -252,6 +251,9 @@ void UInv_InventoryGrid::HandleStackableItemInteraction(UInv_InventoryItem* Clic
 		UInv_GridPopupInteractions::FillInStack(this, RoomInClickedSlot, HoveredStackCount - RoomInClickedSlot, GridIndex);
 		return;
 	}
+
+	// If none of the stacking operations succeeded, do nothing (keep item hovering)
+	UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Stackable item interaction failed - placement not allowed"));
 }
 
 bool UInv_InventoryGrid::HasHoverItem() const
@@ -331,9 +333,17 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 			// Check if they are stackable items of the same type
 			if (UInv_GridCrossOperations::AreItemsStackable(OtherHoverInvItem, ClickedItem))
 			{
-				UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Items are stackable, delegating to HandleStackableItemInteraction"));
-				HandleStackableItemInteraction(ClickedItem, GridIndex);
-				return;
+				UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Items are stackable, delegating to HandleCrossGridStacking"));
+				if (UInv_GridCrossOperations::HandleCrossGridStacking(this, OtherHoverItem, GridIndex))
+				{
+					UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Stackable item transfer successful"));
+					return;
+				}
+				else
+				{
+					UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Stackable item transfer failed - placement not allowed"));
+					return;
+				}
 			}
 			else
 			{
@@ -350,9 +360,7 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 		}
 		else
 		{
-			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Item transfer failed - putting hover item back"));
-			// Don't leave hover item in broken state - put it back to source grid
-			UInv_GridHoverManagement::PutHoverItemBack(GridWithHoverItem);
+			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Item transfer failed - placement not allowed"));
 			return;
 		}
 	}
@@ -389,10 +397,7 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 
 void UInv_InventoryGrid::OnInventoryMenuToggled(bool bOpen)
 {
-	if (!bOpen)
-	{
-		UInv_GridHoverManagement::PutHoverItemBack(this);
-	}
+	// No automatic cleanup - items stay hovering when menu closes
 }
 
 UUserWidget* UInv_InventoryGrid::GetVisibleCursorWidget()
@@ -450,7 +455,7 @@ void UInv_InventoryGrid::SwapWithHoverItem(UInv_InventoryItem* ClickedInventoryI
 
 void UInv_InventoryGrid::OnHide()
 {
-	UInv_GridHoverManagement::PutHoverItemBack(this);
+	// No automatic cleanup - items stay hovering when grid is hidden
 }
 
 void UInv_InventoryGrid::ClearHoverItem()
