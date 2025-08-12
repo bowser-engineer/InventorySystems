@@ -5,7 +5,7 @@
 
 void UInv_GridHighlighting::HighlightSlots(UInv_InventoryGrid* Grid, const int32 Index, const FIntPoint& Dimensions)
 {
-	if (!IsValid(Grid) || !Grid->bMouseWithinCanvas) return;
+	if (!IsValid(Grid)) return;
 	
 	UnHighlightSlots(Grid, Grid->LastHighlightedIndex, Grid->LastHighlightedDimensions);
 	

@@ -41,8 +41,7 @@ void UInv_InventoryStatics::ItemHovered(APlayerController* PC, UInv_InventoryIte
 	UInv_InventoryBase* InventoryBase = IC->GetInventoryMenu();
 	if (!IsValid(InventoryBase)) return;
 
-	if (InventoryBase->HasHoverItem()) return;
-
+	// Allow descriptions to show even when holding an item
 	InventoryBase->OnItemHovered(Item);
 }
 

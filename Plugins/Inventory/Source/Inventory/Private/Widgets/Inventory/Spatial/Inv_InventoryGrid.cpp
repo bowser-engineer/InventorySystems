@@ -284,7 +284,17 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 		}
 	}
 
-	if (!IsValid(HoverItem)) return;
+	// Handle case when there's no hover item - allow picking up items
+	if (!IsValid(HoverItem))
+	{
+		if (CurrentQueryResult.ValidItem.IsValid() && GridSlots.IsValidIndex(CurrentQueryResult.UpperLeftIndex))
+		{
+			OnSlottedItemClicked(CurrentQueryResult.UpperLeftIndex, MouseEvent);
+		}
+		return;
+	}
+
+	// Handle case when there is a hover item - allow placing items
 	if (!GridSlots.IsValidIndex(ItemDropIndex)) return;
 
 	UE_LOG(LogInventory, Warning, TEXT("OnGridSlotClicked: GridIndex=%d, ItemDropIndex=%d"), GridIndex, ItemDropIndex);
