@@ -61,6 +61,9 @@ void UInv_GridHoverManagement::PickUp(UInv_InventoryGrid* Grid, UInv_InventoryIt
 {
 	if (!IsValid(Grid) || !IsValid(ClickedInventoryItem)) return;
 
+	UE_LOG(LogTemp, Warning, TEXT("[PickUp] DEBUG: Grid=%s, GridIndex=%d, Item=%s"), 
+		*GetNameSafe(Grid), GridIndex, *GetNameSafe(ClickedInventoryItem));
+
 	AssignHoverItem(Grid, ClickedInventoryItem, GridIndex, GridIndex);
 	UInv_GridItemPlacement::RemoveItemFromGrid(Grid, ClickedInventoryItem, GridIndex);
 

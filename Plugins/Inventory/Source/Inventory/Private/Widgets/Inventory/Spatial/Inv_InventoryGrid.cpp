@@ -168,6 +168,9 @@ void UInv_InventoryGrid::AddStacks(const FInv_SlotAvailabilityResult& Result)
 void UInv_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
 	UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemClicked] Called for grid %s, slot %d"), *GetName(), GridIndex);
+	UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemClicked] DEBUG: HasHoverItem=%s, HoverItem=%s"), 
+		IsValid(HoverItem) ? TEXT("TRUE") : TEXT("FALSE"), 
+		IsValid(HoverItem) ? *GetNameSafe(HoverItem->GetInventoryItem()) : TEXT("None"));
 	
 	UInv_InventoryStatics::ItemUnhovered(GetOwningPlayer());
 
@@ -176,6 +179,8 @@ void UInv_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 
 	// Check for cross-grid hover item first
 	UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this);
+	UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemClicked] DEBUG: GridWithHoverItem=%s, Same=%s"), 
+		*GetNameSafe(GridWithHoverItem), (GridWithHoverItem == this) ? TEXT("TRUE") : TEXT("FALSE"));
 	if (GridWithHoverItem && GridWithHoverItem != this)
 	{
 		UInv_HoverItem* OtherHoverItem = GridWithHoverItem->GetHoverItem();
@@ -202,10 +207,21 @@ void UInv_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		}
 	}
 
-	if (!IsValid(HoverItem) && UInv_GridPopupInteractions::IsLeftClick(MouseEvent))
+	// Check if hover item is valid AND has a valid inventory item
+	bool bHasValidHoverItem = IsValid(HoverItem) && IsValid(HoverItem->GetInventoryItem());
+	
+	if (!bHasValidHoverItem && UInv_GridPopupInteractions::IsLeftClick(MouseEvent))
 	{
+		UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemClicked] Calling PickUp for %s at index %d"), *GetNameSafe(ClickedInventoryItem), GridIndex);
 		UInv_GridHoverManagement::PickUp(this, ClickedInventoryItem, GridIndex);
 		return;
+	}
+	else
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemClicked] NOT calling PickUp - HoverItem valid: %s, HasValidInventoryItem: %s, IsLeftClick: %s"), 
+			IsValid(HoverItem) ? TEXT("TRUE") : TEXT("FALSE"),
+			(IsValid(HoverItem) && IsValid(HoverItem->GetInventoryItem())) ? TEXT("TRUE") : TEXT("FALSE"),
+			UInv_GridPopupInteractions::IsLeftClick(MouseEvent) ? TEXT("TRUE") : TEXT("FALSE"));
 	}
 
 	if (UInv_GridPopupInteractions::IsRightClick(MouseEvent))
@@ -397,7 +413,44 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 
 void UInv_InventoryGrid::OnInventoryMenuToggled(bool bOpen)
 {
-	// No automatic cleanup - items stay hovering when menu closes
+	if (!bOpen)
+	{
+		// Find the grid with the hover item and recreate the item at its last position
+		if (UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this))
+		{
+			if (UInv_HoverItem* LocalHoverItem = GridWithHoverItem->GetHoverItem())
+			{
+				// Save the item data before clearing
+				UInv_InventoryItem* Item = LocalHoverItem->GetInventoryItem();
+				UInv_InventoryGrid* LastGrid = LocalHoverItem->GetOwnerGrid();
+				int32 LastPosition = LocalHoverItem->GetPreviousGridIndex();
+				int32 LastStackCount = LocalHoverItem->GetStackCount();
+				bool bWasStackable = LocalHoverItem->IsStackable();
+				
+				UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] DEBUG: Item=%s, LastGrid=%s, LastPosition=%d, StackCount=%d"), 
+					*GetNameSafe(Item), *GetNameSafe(LastGrid), LastPosition, LastStackCount);
+				
+				if (IsValid(Item) && IsValid(LastGrid))
+				{
+					// Clear the hover item first
+					UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
+					
+					// Recreate the item at its last position
+					UInv_GridItemPlacement::AddItemAtIndex(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
+					UInv_GridItemPlacement::UpdateGridSlots(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
+					
+					UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Recreated item %s at position %d in grid %s"), 
+						*Item->GetName(), LastPosition, *GetNameSafe(LastGrid));
+				}
+				else
+				{
+					// Fallback: just clear the hover item if we can't recreate it
+					UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
+					UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Could not recreate item - clearing hover item"));
+				}
+			}
+		}
+	}
 }
 
 UUserWidget* UInv_InventoryGrid::GetVisibleCursorWidget()
