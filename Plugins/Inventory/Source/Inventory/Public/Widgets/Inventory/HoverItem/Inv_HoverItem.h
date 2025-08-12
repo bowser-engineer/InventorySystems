@@ -8,6 +8,7 @@
 #include "Inv_HoverItem.generated.h"
 
 class UInv_InventoryItem;
+class UInv_InventoryGrid;
 /**
  * The HoverItem is the item that will appear and follow the mouse
  * when an inventory item on the grid has been clicked.
@@ -32,6 +33,8 @@ public:
 	void SetGridDimensions(const FIntPoint& Dimensions) { GridDimensions = Dimensions; }
 	UInv_InventoryItem* GetInventoryItem() const;
 	void SetInventoryItem(UInv_InventoryItem* Item);
+	UInv_InventoryGrid* GetOwnerGrid() const;
+	void SetOwnerGrid(UInv_InventoryGrid* Grid);
 	
 private:
 
@@ -44,6 +47,7 @@ private:
 	int32 PreviousGridIndex;
 	FIntPoint GridDimensions;
 	TWeakObjectPtr<UInv_InventoryItem> InventoryItem;
+	TWeakObjectPtr<UInv_InventoryGrid> OwnerGrid;
 	bool bIsStackable{false};
 	int32 StackCount{0};
 

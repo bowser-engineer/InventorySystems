@@ -7,6 +7,7 @@
 #include "Widgets/Utils/Inv_WidgetUtils.h"
 #include "InventoryManagement/Components/Inv_InventoryComponent.h"
 #include "InventoryManagement/Utils/Inv_InventoryStatics.h"
+#include "Widgets/Inventory/HoverItem/Inv_HoverItem.h"
 
 
 
@@ -100,7 +101,12 @@ UInv_InventoryGrid* UInv_GridInitialization::GetGridWithHoverItem(const UObject*
 		{
 			if (Grid->HasHoverItem())
 			{
-				return Grid;
+				UInv_HoverItem* HoverItem = Grid->GetHoverItem();
+				if (!HoverItem) continue;
+				if (HoverItem->GetOwnerGrid() == Grid)
+				{
+					return Grid;
+				}
 			}
 		}
 	}

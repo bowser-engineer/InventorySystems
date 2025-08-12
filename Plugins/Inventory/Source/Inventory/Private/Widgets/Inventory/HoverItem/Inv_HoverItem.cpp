@@ -6,6 +6,7 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Items/Inv_InventoryItem.h"
+#include "Widgets/Inventory/Spatial/Inv_InventoryGrid.h"
 
 void UInv_HoverItem::SetImageBrush(const FSlateBrush& Brush) const
 {
@@ -52,4 +53,14 @@ UInv_InventoryItem* UInv_HoverItem::GetInventoryItem() const
 void UInv_HoverItem::SetInventoryItem(UInv_InventoryItem* Item)
 {
 	InventoryItem = Item;
+}
+
+UInv_InventoryGrid* UInv_HoverItem::GetOwnerGrid() const
+{
+	return OwnerGrid.Get();
+}
+
+void UInv_HoverItem::SetOwnerGrid(UInv_InventoryGrid* Grid)
+{
+	OwnerGrid = Grid;
 }

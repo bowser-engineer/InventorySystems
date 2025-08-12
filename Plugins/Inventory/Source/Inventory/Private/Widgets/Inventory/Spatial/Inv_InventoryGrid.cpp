@@ -254,6 +254,11 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 {
 	UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this);
 
+	UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] GridWithHoverItem: %s, This: %s, Same: %s"),
+		GridWithHoverItem ? *GridWithHoverItem->GetName() : TEXT("NULL"),
+		*GetName(),
+		(GridWithHoverItem == this) ? TEXT("TRUE") : TEXT("FALSE"));
+
 	if (GridWithHoverItem && GridWithHoverItem != this)
 	{
 		UInv_HoverItem* OtherHoverItem = GridWithHoverItem->GetHoverItem();
@@ -270,6 +275,11 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 		if (UInv_GridCrossOperations::HandleCrossGridTransfer(this, GridWithHoverItem, OtherHoverItem, GridIndex))
 		{
 			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Item transfer successful"));
+			return;
+		}
+		else
+		{
+			UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Item transfer failed - returning early"));
 			return;
 		}
 	}

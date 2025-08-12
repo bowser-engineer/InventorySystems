@@ -34,6 +34,7 @@ void UInv_GridHoverManagement::AssignHoverItem(UInv_InventoryGrid* Grid, UInv_In
 	Grid->HoverItem->SetGridDimensions(GridFragment->GetGridSize());
 	Grid->HoverItem->SetInventoryItem(InventoryItem);
 	Grid->HoverItem->SetIsStackable(InventoryItem->IsStackable());
+	Grid->HoverItem->SetOwnerGrid(Grid);
 
 	Grid->GetOwningPlayer()->SetMouseCursorWidget(EMouseCursor::Default, Grid->HoverItem);
 }
@@ -77,6 +78,7 @@ void UInv_GridHoverManagement::ClearHoverItem(UInv_InventoryGrid* Grid)
 	Grid->HoverItem->SetPreviousGridIndex(INDEX_NONE);
 	Grid->HoverItem->UpdateStackCount(0);
 	Grid->HoverItem->SetImageBrush(FSlateNoResource());
+	Grid->HoverItem->SetOwnerGrid(nullptr);
 
 	Grid->HoverItem->RemoveFromParent();
 	Grid->HoverItem = nullptr;
