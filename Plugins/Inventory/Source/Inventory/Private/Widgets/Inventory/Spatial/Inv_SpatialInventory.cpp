@@ -20,6 +20,7 @@
 #include "Widgets/Inventory/GridSlots/Inv_EquippedGridSlot.h"
 #include "Widgets/Inventory/HoverItem/Inv_HoverItem.h"
 #include "Widgets/Inventory/SlottedItems/Inv_EquippedSlottedItem.h"
+#include "Widgets/Inventory/Spatial/Inv_GridHoverManagement.h"
 
 void UInv_SpatialInventory::NativeOnInitialized()
 {
@@ -86,7 +87,7 @@ void UInv_SpatialInventory::EquippedSlottedItemClicked(UInv_EquippedSlottedItem*
 	ClearSlotOfItem(EquippedGridSlot);
 
 	// Assign previously equipped item as the hover item
-	//Grid_Backpack->AssignHoverItem(ItemToUnequip);
+	UInv_GridHoverManagement::AssignHoverItem(Grid_Backpack, ItemToUnequip);
 	
 	// Remove of the equipped slotted item from the equipped grid slot
 	RemoveEquippedSlottedItem(EquippedSlottedItem);
