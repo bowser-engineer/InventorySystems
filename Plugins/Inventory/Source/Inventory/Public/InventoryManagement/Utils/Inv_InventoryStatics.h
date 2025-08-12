@@ -24,12 +24,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	static EInv_ItemCategory GetItemCategoryFromItemComp(UInv_ItemComponent* ItemComp);
-
+	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	static void SetItemCategoryFromItemComp(UInv_ItemComponent* ItemComp, EInv_ItemCategory Category);
 
 	template<typename T, typename FuncT>
-	static void ForEach2D(TArray<T>& Array, int32 Index, const FIntPoint& Range2D, int32 GridColumns, const FuncT& Function);
+	static void ForEach2D(const TArray<T>& Array, int32 Index, const FIntPoint& Range2D, int32 GridColumns, const FuncT& Function);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	static void ItemHovered(APlayerController* PC, UInv_InventoryItem* Item);
@@ -44,7 +44,7 @@ public:
 };
 
 template<typename T, typename FuncT>
-void UInv_InventoryStatics::ForEach2D(TArray<T>& Array, int32 Index, const FIntPoint& Range2D, int32 GridColumns, const FuncT& Function)
+void UInv_InventoryStatics::ForEach2D(const TArray<T>& Array, int32 Index, const FIntPoint& Range2D, int32 GridColumns, const FuncT& Function)
 {
 	for (int32 j = 0; j < Range2D.Y; ++j)
 	{

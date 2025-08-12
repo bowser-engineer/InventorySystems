@@ -45,52 +45,14 @@ public:
 	void AssignHoverItem(UInv_InventoryItem* InventoryItem);
 	void OnHide();
 
+
+
 	UFUNCTION()
 	void AddItem(UInv_InventoryItem* Item);
 
-	/* Adding Items from different Grids */
-
-	/** Check if this grid can accept an item from another grid */
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool CanAcceptFromGrid(UInv_InventoryGrid* SourceGrid, UInv_InventoryItem* Item, int32 StackAmount = -1);
-
-	/** Transfer an item from another grid to this grid */
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool TransferFromGrid(UInv_InventoryGrid* SourceGrid, UInv_InventoryItem* Item, int32 StackAmount = -1);
-
-	/** Check if mouse cursor is currently over this grid */
-	UFUNCTION(BlueprintPure, Category = "Inventory")
-	bool IsMouseOverGrid() const;
-
-	/** Get the grid that currently has the hover item (static function) */
-	UFUNCTION(BlueprintPure, Category = "Inventory")
-	static UInv_InventoryGrid* GetGridWithHoverItem(const UObject* WorldContext);
-
 	bool MatchesPreferredCategory(const UInv_InventoryItem* Item) const;
-
-	/** Register this grid in the global grid manager */
-	void RegisterGrid();
-
-	/** Unregister this grid from the global grid manager */
-	void UnregisterGrid();
-
 	// Override NativeDestruct to properly cleanup
 	virtual void NativeDestruct() override;
-
-
-private:
-
-	/* Adding Items from different Grids */
-
-	/** Handle cross-grid item transfer operations */
-	bool HandleCrossGridTransfer(UInv_InventoryGrid* SourceGrid, UInv_HoverItem* HoverItem, int32 ClickedGridIndex);
-
-	/** Place an item from another grid at the specified index */
-	bool PlaceItemFromOtherGrid(UInv_InventoryGrid* SourceGrid, UInv_HoverItem* HoverItem, int32 GridIndex);
-
-	/** Handle swapping items between different grids */
-	bool HandleCrossGridSwap(UInv_InventoryGrid* SourceGrid, UInv_InventoryGrid* TargetGrid,
-		UInv_HoverItem* HoverItem, UInv_InventoryItem* TargetItem, int32 TargetIndex);
 
 	/** Static array to track all active grids for cross-grid operations */
 	static TArray<TWeakObjectPtr<UInv_InventoryGrid>> RegisteredGrids;
@@ -105,11 +67,13 @@ private:
 	TWeakObjectPtr<UInv_InventoryComponent> InventoryComponent;
 	TWeakObjectPtr<UCanvasPanel> OwningCanvasPanel;
 
-	void ConstructGrid();
 	FInv_SlotAvailabilityResult HasRoomForItem(const UInv_InventoryItem* Item, const int32 StackAmountOverride = -1);
 	FInv_SlotAvailabilityResult HasRoomForItem(const FInv_ItemManifest& Manifest, const int32 StackAmountOverride = -1);
 	void AddItemToIndices(const FInv_SlotAvailabilityResult& Result, UInv_InventoryItem* NewItem);
 	bool MatchesCategory(const UInv_InventoryItem* Item) const;
+
+
+	void ConstructGrid();
 	FVector2D GetDrawSize(const FInv_GridFragment* GridFragment) const;
 	void SetSlottedItemImage(const UInv_SlottedItem* SlottedItem, const FInv_GridFragment* GridFragment, const FInv_ImageFragment* ImageFragment) const;
 	void AddItemAtIndex(UInv_InventoryItem* Item, const int32 Index, const bool bStackable, const int32 StackAmount);
@@ -193,6 +157,9 @@ private:
 
 	UFUNCTION()
 	void OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent);
+
+	UFUNCTION()
+	void HandleStackableItemInteraction(UInv_InventoryItem* ClickedInventoryItem, int32 GridIndex);
 
 	UFUNCTION()
 	void OnGridSlotClicked(int32 GridIndex, const FPointerEvent& MouseEvent);
