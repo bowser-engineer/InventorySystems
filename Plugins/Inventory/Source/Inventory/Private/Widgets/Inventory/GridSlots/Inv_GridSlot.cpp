@@ -25,6 +25,12 @@ FReply UInv_GridSlot::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const
 	return FReply::Handled();
 }
 
+FReply UInv_GridSlot::NativeOnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	GridSlotReleased.Broadcast(TileIndex, MouseEvent);
+	return FReply::Handled();
+}
+
 void UInv_GridSlot::SetInventoryItem(UInv_InventoryItem* Item)
 {
 	InventoryItem = Item;

@@ -8,6 +8,8 @@
 #include "Components/WidgetSwitcher.h"
 #include "InventoryManagement/Utils/Inv_InventoryStatics.h"
 #include "Widgets/Inventory/Spatial/Inv_InventoryGrid.h"
+#include "Widgets/Inventory/Spatial/Inv_GridInitialization.h"
+#include "Widgets/Inventory/Spatial/Inv_GridHoverManagement.h"
 #include "Inventory.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/CanvasPanel.h"
@@ -129,6 +131,20 @@ void UInv_SpatialInventory::EquippedSlottedItemClicked(UInv_EquippedSlottedItem*
 FReply UInv_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	//ActiveGrid->DropItem();
+	return FReply::Handled();
+}
+
+FReply UInv_SpatialInventory::NativeOnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	// Check if there's a hover item and clear it when releasing outside of grids
+	if (UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this))
+	{
+		if (UInv_HoverItem* HoverItem = GridWithHoverItem->GetHoverItem())
+		{
+			UE_LOG(LogInventory, Warning, TEXT("[SpatialInventory] Mouse released outside grid - clearing hover item"));
+			UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
+		}
+	}
 	return FReply::Handled();
 }
 

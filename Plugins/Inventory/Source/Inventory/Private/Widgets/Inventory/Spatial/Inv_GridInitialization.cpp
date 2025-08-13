@@ -55,6 +55,7 @@ void UInv_GridInitialization::ConstructGrid(UInv_InventoryGrid* Grid)
 
 			Grid->GridSlots.Add(GridSlot);
 			GridSlot->GridSlotClicked.AddDynamic(Grid, &UInv_InventoryGrid::OnGridSlotClicked);
+			GridSlot->GridSlotReleased.AddDynamic(Grid, &UInv_InventoryGrid::OnGridSlotReleased);
 			GridSlot->GridSlotHovered.AddDynamic(Grid, &UInv_InventoryGrid::OnGridSlotHovered);
 			GridSlot->GridSlotUnhovered.AddDynamic(Grid, &UInv_InventoryGrid::OnGridSlotUnhovered);
 		}

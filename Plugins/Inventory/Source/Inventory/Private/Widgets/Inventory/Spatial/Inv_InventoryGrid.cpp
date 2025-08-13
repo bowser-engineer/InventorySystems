@@ -384,28 +384,117 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 		}
 	}
 
-	// Handle case when there's no hover item - allow picking up items
+	// OnGridSlotClicked now only handles pickup (mouse down event)
+	// Only pick up items if there's no hover item already
 	if (!IsValid(HoverItem))
 	{
 		if (CurrentQueryResult.ValidItem.IsValid() && GridSlots.IsValidIndex(CurrentQueryResult.UpperLeftIndex))
 		{
 			OnSlottedItemClicked(CurrentQueryResult.UpperLeftIndex, MouseEvent);
 		}
-		return;
+	}
+	// Note: Placement logic moved to OnGridSlotReleased
+}
+
+void UInv_InventoryGrid::OnGridSlotReleased(int32 GridIndex, const FPointerEvent& MouseEvent)
+{
+	UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this);
+
+	UE_LOG(LogInventory, Warning, TEXT("[OnGridSlotReleased] GridWithHoverItem: %s, This: %s, Same: %s"),
+		GridWithHoverItem ? *GridWithHoverItem->GetName() : TEXT("NULL"),
+		*GetName(),
+		(GridWithHoverItem == this) ? TEXT("TRUE") : TEXT("FALSE"));
+
+	if (GridWithHoverItem && GridWithHoverItem != this)
+	{
+		UInv_HoverItem* OtherHoverItem = GridWithHoverItem->GetHoverItem();
+
+		if (!IsValid(OtherHoverItem)) return;
+
+		UInv_InventoryItem* HoverInvItem = OtherHoverItem->GetInventoryItem();
+		if (!IsValid(HoverInvItem))
+		{
+			// Clear hover item from the owning grid, not just any grid
+			if (UInv_InventoryGrid* OwnerGrid = OtherHoverItem->GetOwnerGrid())
+			{
+				if (OwnerGrid->GetHoverItem() == OtherHoverItem)
+				{
+					OwnerGrid->ClearHoverItem();
+				}
+			}
+			else
+			{
+				GridWithHoverItem->ClearHoverItem();
+			}
+			return;
+		}
+
+		// Check if we clicked on a slot that has an item
+		if (GridSlots.IsValidIndex(GridIndex) && GridSlots[GridIndex]->GetInventoryItem().IsValid())
+		{
+			UInv_InventoryItem* ClickedItem = GridSlots[GridIndex]->GetInventoryItem().Get();
+			UInv_InventoryItem* OtherHoverInvItem = OtherHoverItem->GetInventoryItem();
+			
+			UE_LOG(LogInventory, Warning, TEXT("[OnGridSlotReleased] Detected item at clicked slot %d"), GridIndex);
+			
+			// Check if they are stackable items of the same type
+			if (UInv_GridCrossOperations::AreItemsStackable(OtherHoverInvItem, ClickedItem))
+			{
+				UE_LOG(LogInventory, Warning, TEXT("[OnGridSlotReleased] Items are stackable, delegating to HandleCrossGridStacking"));
+				if (UInv_GridCrossOperations::HandleCrossGridStacking(this, OtherHoverItem, GridIndex))
+				{
+					UE_LOG(LogInventory, Warning, TEXT("[OnGridSlotReleased] Stackable item transfer successful"));
+					return;
+				}
+				else
+				{
+					UE_LOG(LogInventory, Warning, TEXT("[OnGridSlotReleased] Stackable item transfer failed - clearing hover item"));
+					UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
+					return;
+				}
+			}
+			else
+			{
+				UE_LOG(LogInventory, Warning, TEXT("[OnGridSlotReleased] Items not stackable, would need swap - clearing hover item"));
+				UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
+				return;
+			}
+		}
+
+		if (UInv_GridCrossOperations::HandleCrossGridTransfer(this, GridWithHoverItem, OtherHoverItem, GridIndex))
+		{
+			UE_LOG(LogInventory, Warning, TEXT("[OnGridSlotReleased] Item transfer successful"));
+			return;
+		}
+		else
+		{
+			UE_LOG(LogInventory, Warning, TEXT("[OnGridSlotReleased] Item transfer failed - clearing hover item"));
+			UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
+			return;
+		}
 	}
 
 	// Handle case when there is a hover item - allow placing items
+	if (!IsValid(HoverItem)) return;
+
 	if (!GridSlots.IsValidIndex(ItemDropIndex)) return;
 
-	UE_LOG(LogInventory, Warning, TEXT("OnGridSlotClicked: GridIndex=%d, ItemDropIndex=%d"), GridIndex, ItemDropIndex);
+	UE_LOG(LogInventory, Warning, TEXT("OnGridSlotReleased: GridIndex=%d, ItemDropIndex=%d"), GridIndex, ItemDropIndex);
 
 	if (CurrentQueryResult.ValidItem.IsValid() && GridSlots.IsValidIndex(CurrentQueryResult.UpperLeftIndex))
 	{
-		OnSlottedItemClicked(CurrentQueryResult.UpperLeftIndex, MouseEvent);
+		// Don't allow swapping on release - that would require drag to specific item
+		UE_LOG(LogInventory, Warning, TEXT("OnGridSlotReleased: Cannot place on occupied slot - clearing hover item"));
+		UInv_GridHoverManagement::ClearHoverItem(this);
 		return;
 	}
 
-	if (!UInv_GridItemPlacement::IsInGridBounds(this, ItemDropIndex, HoverItem->GetGridDimensions())) return;
+	if (!UInv_GridItemPlacement::IsInGridBounds(this, ItemDropIndex, HoverItem->GetGridDimensions())) 
+	{
+		UE_LOG(LogInventory, Warning, TEXT("OnGridSlotReleased: Item out of bounds - clearing hover item"));
+		UInv_GridHoverManagement::ClearHoverItem(this);
+		return;
+	}
 
 	auto GridSlot = GridSlots[ItemDropIndex];
 	if (!GridSlot->GetInventoryItem().IsValid())
