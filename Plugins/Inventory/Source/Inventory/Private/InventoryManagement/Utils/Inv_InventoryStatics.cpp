@@ -7,6 +7,8 @@
 #include "Items/Components/Inv_ItemComponent.h"
 #include "Types/Inv_GridTypes.h"
 #include "Widgets/Inventory/InventoryBase/Inv_InventoryBase.h"
+#include <Widgets/Inventory/Spatial/Inv_GridInitialization.h>
+#include <Widgets/Inventory/Spatial/Inv_GridHoverManagement.h>
 
 UInv_InventoryComponent* UInv_InventoryStatics::GetInventoryComponent(const APlayerController* PlayerController)
 {
@@ -25,6 +27,25 @@ EInv_ItemCategory UInv_InventoryStatics::GetItemCategoryFromItemComp(UInv_ItemCo
 {
 	if (!IsValid(ItemComp)) return EInv_ItemCategory::None;
 	return ItemComp->GetItemManifest().GetItemCategory();
+}
+
+UInv_HoverItem* UInv_InventoryStatics::GetHoverItem(APlayerController* PC)
+{
+	UInv_InventoryComponent* IC = GetInventoryComponent(PC);
+	if (!IsValid(IC)) return nullptr;
+
+	UInv_InventoryBase* InventoryBase = IC->GetInventoryMenu();
+	if (!IsValid(InventoryBase)) return nullptr;
+
+	return InventoryBase->GetHoverItem();
+}
+
+UInv_InventoryBase* UInv_InventoryStatics::GetInventoryWidget(APlayerController* PC)
+{
+	UInv_InventoryComponent* IC = GetInventoryComponent(PC);
+	if (!IsValid(IC)) return nullptr;
+
+	return IC->GetInventoryMenu();
 }
 
 void UInv_InventoryStatics::SetItemCategoryFromItemComp(UInv_ItemComponent* ItemComp, EInv_ItemCategory Category)
@@ -56,21 +77,13 @@ void UInv_InventoryStatics::ItemUnhovered(APlayerController* PC)
 	InventoryBase->OnItemUnHovered();
 }
 
-UInv_HoverItem* UInv_InventoryStatics::GetHoverItem(APlayerController* PC)
-{
-	UInv_InventoryComponent* IC = GetInventoryComponent(PC);
-	if (!IsValid(IC)) return nullptr;
-
-	UInv_InventoryBase* InventoryBase = IC->GetInventoryMenu();
-	if (!IsValid(InventoryBase)) return nullptr;
-
-	return InventoryBase->GetHoverItem();
-}
-
-UInv_InventoryBase* UInv_InventoryStatics::GetInventoryWidget(APlayerController* PC)
-{
-	UInv_InventoryComponent* IC = GetInventoryComponent(PC);
-	if (!IsValid(IC)) return nullptr;
-
-	return IC->GetInventoryMenu();
+void UInv_InventoryStatics::ClearHoverItem(const UInv_InventoryGrid* Grid) {
+	if (UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(Grid))
+	{
+		if (UInv_HoverItem* HoverItem = GridWithHoverItem->GetHoverItem())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[SpatialInventory] Mouse released outside grid - clearing hover item"));
+			UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
+		}
+	}
 }

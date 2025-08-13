@@ -14,6 +14,10 @@
 #include "Widgets/Inventory/SlottedItems/Inv_EquippedSlottedItem.h"
 #include "Widgets/Inventory/Spatial/Inv_SpatialInventory.h"
 #include "Components/OverlaySlot.h"
+#include "Widgets/Inventory/Spatial/Inv_InventoryGrid.h"
+#include <Widgets/Inventory/Spatial/Inv_GridInitialization.h>
+#include <Widgets/Inventory/Spatial/Inv_GridHoverManagement.h>
+#include <InventoryManagement/Utils/Inv_InventoryStatics.h>
 
 void UInv_EquippedGridSlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
@@ -89,28 +93,41 @@ FReply UInv_EquippedGridSlot::NativeOnMouseButtonDown(const FGeometry& InGeometr
 
 FReply UInv_EquippedGridSlot::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	// Only equip if we have a hover item and it's compatible
+	// Get hover item
 	UInv_HoverItem* HoverItem = UInv_InventoryStatics::GetHoverItem(GetOwningPlayer());
-	if (IsValid(HoverItem))
+	if (!IsValid(HoverItem))
+		return FReply::Handled();
+
+	// Get inventory item from hover item
+	UInv_InventoryItem* HoverInvItem = HoverItem->GetInventoryItem();
+	if (!IsValid(HoverInvItem))
+		return FReply::Handled();
+
+	// Get equipment fragment
+	const FInv_EquipmentFragment* EquipmentFragment = HoverInvItem->GetItemManifest().GetFragmentOfType<FInv_EquipmentFragment>();
+	if (!EquipmentFragment || !EquipmentFragment->GetEquipmentType().MatchesTag(EquipmentTypeTag))
 	{
-		UInv_InventoryItem* HoverInvItem = HoverItem->GetInventoryItem();
-		if (IsValid(HoverInvItem))
-		{
-			// Check compatibility
-			const FInv_EquipmentFragment* EquipmentFragment = HoverInvItem->GetItemManifest().GetFragmentOfType<FInv_EquipmentFragment>();
-			if (EquipmentFragment && EquipmentFragment->GetEquipmentType().MatchesTag(EquipmentTypeTag))
-			{
-				// Only broadcast if compatible and slot is available for this item
-				UInv_SpatialInventory* SpatialInventory = Cast<UInv_SpatialInventory>(UInv_InventoryStatics::GetInventoryWidget(GetOwningPlayer()));
-				if (SpatialInventory && SpatialInventory->CanEquipHoverItem(this, EquipmentTypeTag))
-				{
-					EquippedGridSlotClicked.Broadcast(this, EquipmentTypeTag);
-				}
-			}
-		}
+		UE_LOG(LogTemp, Warning, TEXT("Incompatible Equipment Type Tag!"));
+		UInv_InventoryStatics::ClearHoverItem(Cast<UInv_InventoryGrid>(this));
+		return FReply::Handled();
 	}
+
+	// Check if item can be equipped
+	UInv_SpatialInventory* SpatialInventory = Cast<UInv_SpatialInventory>(UInv_InventoryStatics::GetInventoryWidget(GetOwningPlayer()));
+	if (SpatialInventory && SpatialInventory->CanEquipHoverItem(this, EquipmentTypeTag))
+	{
+		EquippedGridSlotClicked.Broadcast(this, EquipmentTypeTag);
+	}
+	else
+	{
+		// Replace with swap logic
+		UE_LOG(LogTemp, Warning, TEXT("HoverItem cannot be equipped in this slot! We Should Implment Equipment swap logic here"));
+		UInv_InventoryStatics::ClearHoverItem(Cast<UInv_InventoryGrid>(this));
+	}
+
 	return FReply::Handled();
 }
+
 
 UInv_EquippedSlottedItem* UInv_EquippedGridSlot::OnItemEquipped(UInv_InventoryItem* Item, const FGameplayTag& EquipmentTag, float TileSize)
 {

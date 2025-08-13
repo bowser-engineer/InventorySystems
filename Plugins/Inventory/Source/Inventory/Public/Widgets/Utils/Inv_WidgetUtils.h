@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include <Widgets/Inventory/Spatial/Inv_InventoryGrid.h>
 #include "Inv_WidgetUtils.generated.h"
 
 /**

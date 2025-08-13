@@ -5,6 +5,9 @@
 
 #include "Blueprint/SlateBlueprintLibrary.h"
 #include "Components/Widget.h"
+#include <Widgets/Inventory/Spatial/Inv_GridInitialization.h>
+#include <Widgets/Inventory/Spatial/Inv_GridHoverManagement.h>
+#include "Widgets/Inventory/Spatial/Inv_InventoryGrid.h" 
 
 FVector2D UInv_WidgetUtils::GetWidgetPosition(UWidget* Widget)
 {

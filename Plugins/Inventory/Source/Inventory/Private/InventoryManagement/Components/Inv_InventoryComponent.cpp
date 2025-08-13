@@ -9,7 +9,11 @@
 #include "Items/Inv_InventoryItem.h"
 #include "Items/Fragments/Inv_ItemFragment.h"
 #include <InventoryManagement/Utils/Inv_InventoryStatics.h>
-
+#include <Widgets/Inventory/Spatial/Inv_GridInitialization.h>
+#include <Widgets/Inventory/Spatial/Inv_GridHoverManagement.h>
+#include "InventoryManagement/Utils/Inv_InventoryStatics.h"
+#include "Widgets/Inventory/Spatial/Inv_InventoryGrid.h" 
+#include "InventoryManagement/Utils/Inv_InventoryStatics.h"
 
 UInv_InventoryComponent::UInv_InventoryComponent() : InventoryList(this)
 {
@@ -300,8 +304,7 @@ void UInv_InventoryComponent::CloseInventoryMenu()
 {
 	if (!IsValid(InventoryMenu)) return;
 
-	// Return any hover items to their original positions before closing
-	InventoryMenu->ReturnHoverItemsToOriginalPositions();
+    UInv_InventoryStatics::ClearHoverItem(Cast<UInv_InventoryGrid>(this));
 
 	InventoryMenu->SetVisibility(ESlateVisibility::Collapsed);
 	bInventoryMenuOpen = false;

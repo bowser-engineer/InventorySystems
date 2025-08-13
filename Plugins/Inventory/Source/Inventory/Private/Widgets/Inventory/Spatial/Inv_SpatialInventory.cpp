@@ -193,14 +193,8 @@ FReply UInv_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometr
 FReply UInv_SpatialInventory::NativeOnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	// Check if there's a hover item and clear it when releasing outside of grids
-	if (UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this))
-	{
-		if (UInv_HoverItem* HoverItem = GridWithHoverItem->GetHoverItem())
-		{
-			UE_LOG(LogInventory, Warning, TEXT("[SpatialInventory] Mouse released outside grid - clearing hover item"));
-			UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
-		}
-	}
+	UE_LOG(LogInventory, Warning, TEXT("[SpatialInventory] Mouse released outside grid - clearing hover item"));
+	UInv_InventoryStatics::ClearHoverItem(Cast<UInv_InventoryGrid>(this));
 	return FReply::Handled();
 }
 
@@ -522,67 +516,4 @@ void UInv_SpatialInventory::OnItemPlacedInInventory(UInv_InventoryItem* Item)
 		OriginalEquippedSlot.Reset();
 		OriginalEquippedItem.Reset();
 	}
-}
-
-void UInv_SpatialInventory::ReturnHoverItemsToOriginalPositions()
-{
-	UE_LOG(LogTemp, Warning, TEXT("[ReturnHoverItemsToOriginalPositions] Checking for hover items to return"));
-
-	// Find any grid that has a hover item
-	UInv_InventoryGrid* GridWithHoverItem = nullptr;
-	if (Grid_Backpack && Grid_Backpack->HasHoverItem()) 
-		GridWithHoverItem = Grid_Backpack;
-	else if (Grid_Locked && Grid_Locked->HasHoverItem()) 
-		GridWithHoverItem = Grid_Locked;
-	else if (Grid_Satchel && Grid_Satchel->HasHoverItem()) 
-		GridWithHoverItem = Grid_Satchel;
-	else if (Grid_Quiver && Grid_Quiver->HasHoverItem()) 
-		GridWithHoverItem = Grid_Quiver;
-
-	if (!GridWithHoverItem)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ReturnHoverItemsToOriginalPositions] No hover items found"));
-		return;
-	}
-
-	UInv_HoverItem* HoverItem = GridWithHoverItem->GetHoverItem();
-	if (!IsValid(HoverItem) || !IsValid(HoverItem->GetInventoryItem()))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ReturnHoverItemsToOriginalPositions] Invalid hover item"));
-		return;
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("[ReturnHoverItemsToOriginalPositions] Found hover item: %s"), *HoverItem->GetInventoryItem()->GetName());
-
-	// Check if this was a previously equipped item
-	if (HoverItem->WasPreviouslyEquipped() && OriginalEquippedSlot.IsValid() && OriginalEquippedItem.IsValid())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ReturnHoverItemsToOriginalPositions] Returning equipped item to equipment slot"));
-		
-		// Return the equipped item to its equipment slot
-		UInv_EquippedSlottedItem* EquippedSlottedItem = OriginalEquippedSlot->OnItemEquipped(
-			OriginalEquippedItem.Get(),
-			OriginalEquippedSlot->GetEquipmentTypeTag(),
-			GetTileSize()
-		);
-		
-		if (EquippedSlottedItem)
-		{
-			EquippedSlottedItem->OnEquippedSlottedItemClicked.AddDynamic(this, &ThisClass::EquippedSlottedItemClicked);
-		}
-		
-		// Clear references
-		OriginalEquippedSlot.Reset();
-		OriginalEquippedItem.Reset();
-	}
-	else
-	{
-		// Return regular inventory item to its original grid position
-		UE_LOG(LogTemp, Warning, TEXT("[ReturnHoverItemsToOriginalPositions] Returning inventory item to original position"));
-		UInv_GridHoverManagement::PutHoverItemBack(GridWithHoverItem);
-		return; // PutHoverItemBack handles clearing the hover item
-	}
-
-	// Clear the hover item
-	UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
 }
