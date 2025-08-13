@@ -124,6 +124,16 @@ bool UInv_GridCrossOperations::HandleCrossGridStacking(UInv_InventoryGrid* Targe
 			}
 			else 
 			{
+				// Remove the item from its original position since the entire stack was transferred
+				UInv_InventoryGrid* OriginalGrid = LocalHoverItem->GetOwnerGrid();
+				int32 OriginalIndex = LocalHoverItem->GetPreviousGridIndex();
+				if (IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
+				{
+					UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Stacking: Removing entire stack from original position: Grid=%s, Index=%d"), 
+						*GetNameSafe(OriginalGrid), OriginalIndex);
+					UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, Item, OriginalIndex);
+				}
+
 				// Set the target grid's SourceGrid to point to the source grid for future transfers
 				if (UInv_InventoryGrid* LocalHoverGrid = LocalHoverItem->GetOwnerGrid())
 				{
@@ -218,6 +228,16 @@ bool UInv_GridCrossOperations::PlaceItemFromOtherGrid(UInv_InventoryGrid* Target
 
 	UInv_GridItemPlacement::AddItemAtIndex(TargetGrid, Item, GridIndex, bIsStackable, StackAmount);
 	UInv_GridItemPlacement::UpdateGridSlots(TargetGrid, Item, GridIndex, bIsStackable, StackAmount);
+
+	// Remove the item from its original position now that it's successfully placed
+	UInv_InventoryGrid* OriginalGrid = HoverItem->GetOwnerGrid();
+	int32 OriginalIndex = HoverItem->GetPreviousGridIndex();
+	if (IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Removing item from original position: Grid=%s, Index=%d"), 
+			*GetNameSafe(OriginalGrid), OriginalIndex);
+		UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, Item, OriginalIndex);
+	}
 
 	// Set the target grid's SourceGrid to point to the source grid for future transfers
 	if (UInv_InventoryGrid* LocalHoverGrid = HoverItem->GetOwnerGrid())
@@ -326,6 +346,16 @@ bool UInv_GridCrossOperations::HandleCrossGridSwap(UInv_InventoryGrid* SourceGri
 	// Step 2: Place hover item in target grid at target position
 	UInv_GridItemPlacement::AddItemAtIndex(TargetGrid, HoverInvItem, TargetIndex, bHoverIsStackable, HoverStackCount);
 	UInv_GridItemPlacement::UpdateGridSlots(TargetGrid, HoverInvItem, TargetIndex, bHoverIsStackable, HoverStackCount);
+
+	// Step 2.5: Remove hover item from its original position
+	UInv_InventoryGrid* OriginalGrid = HoverItem->GetOwnerGrid();
+	int32 OriginalIndex = HoverItem->GetPreviousGridIndex();
+	if (IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Swap: Removing hover item from original position: Grid=%s, Index=%d"), 
+			*GetNameSafe(OriginalGrid), OriginalIndex);
+		UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, HoverInvItem, OriginalIndex);
+	}
 
 	// Step 3: Place target item in source grid using availability result
 	SourceAvailability.Item = TargetItem;

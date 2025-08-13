@@ -110,6 +110,12 @@ void UInv_SpatialInventory::EquippedSlottedItemClicked(UInv_EquippedSlottedItem*
 	// Assign previously equipped item as the hover item
 	UInv_GridHoverManagement::AssignHoverItem(Grid_Backpack, ItemToUnequip);
 	
+	// Mark this hover item as previously equipped so it can be re-equipped on menu close
+	if (UInv_HoverItem* HoverItem = Grid_Backpack->GetHoverItem())
+	{
+		HoverItem->SetWasPreviouslyEquipped(true);
+	}
+	
 	// Remove of the equipped slotted item from the equipped grid slot
 	RemoveEquippedSlottedItem(EquippedSlottedItem);
 	

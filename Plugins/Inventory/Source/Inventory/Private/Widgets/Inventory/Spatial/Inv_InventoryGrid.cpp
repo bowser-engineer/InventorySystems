@@ -427,141 +427,13 @@ void UInv_InventoryGrid::OnInventoryMenuToggled(bool bOpen)
 	}
 	else
 	{
-		// Find the grid with the hover item and recreate the item at its last position
+		// Find the grid with the hover item and clear it when inventory closes
 		if (UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this))
 		{
 			if (UInv_HoverItem* LocalHoverItem = GridWithHoverItem->GetHoverItem())
 			{
-				// Save the item data before clearing
-				UInv_InventoryItem* Item = LocalHoverItem->GetInventoryItem();
-				UInv_InventoryGrid* LastGrid = LocalHoverItem->GetOwnerGrid();
-				int32 LastPosition = LocalHoverItem->GetPreviousGridIndex();
-				int32 LastStackCount = LocalHoverItem->GetStackCount();
-				bool bWasStackable = LocalHoverItem->IsStackable();
-				
-				UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] DEBUG: Item=%s, LastGrid=%s, LastPosition=%d, StackCount=%d"), 
-					*GetNameSafe(Item), *GetNameSafe(LastGrid), LastPosition, LastStackCount);
-				
-				if (IsValid(Item) && IsValid(LastGrid))
-				{
-					// Check if this is an equipped item that should be re-equipped
-					const FInv_EquipmentFragment* EquipmentFragment = Item->GetItemManifest().GetFragmentOfType<FInv_EquipmentFragment>();
-					UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Item %s has EquipmentFragment: %s"), 
-						*Item->GetName(), EquipmentFragment ? TEXT("YES") : TEXT("NO"));
-					if (EquipmentFragment)
-					{
-						UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Item is equipped item, attempting to re-equip"));
-						// This is an equipped item, try to re-equip it
-						UInv_SpatialInventory* SpatialInventory = Cast<UInv_SpatialInventory>(UInv_InventoryStatics::GetInventoryWidget(GetOwningPlayer()));
-						if (IsValid(SpatialInventory))
-						{
-							// Check if this item was recently unequipped due to swapping
-							if (SpatialInventory->IsRecentlyUnequippedItem(Item))
-							{
-								UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Item %s was recently unequipped due to swapping, returning to inventory"), *Item->GetName());
-								// Don't re-equip, just return to inventory
-								UInv_GridItemPlacement::AddItemAtIndex(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
-								UInv_GridItemPlacement::UpdateGridSlots(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
-							}
-							else
-							{
-							const FGameplayTag ItemEquipmentType = EquipmentFragment->GetEquipmentType();
-							UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Item equipment type: %s"), *ItemEquipmentType.ToString());
-							bool bReEquipped = false;
-							
-							for (UInv_EquippedGridSlot* EquippedSlot : SpatialInventory->GetEquippedGridSlots())
-							{
-								if (IsValid(EquippedSlot))
-								{
-									UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Checking slot with type: %s"), *EquippedSlot->GetEquipmentTypeTag().ToString());
-									if (ItemEquipmentType.MatchesTag(EquippedSlot->GetEquipmentTypeTag()))
-									{
-										UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Found matching slot!"));
-										// Get any currently equipped item to check if slot was swapped
-										UInv_InventoryItem* CurrentlyEquippedItem = EquippedSlot->GetInventoryItem().Get();
-										UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] CurrentlyEquippedItem: %s, Item we're trying to re-equip: %s"), 
-											*GetNameSafe(CurrentlyEquippedItem), *GetNameSafe(Item));
-									
-									// Check if the slot is already occupied by a different item (due to swapping)
-									if (IsValid(CurrentlyEquippedItem) && CurrentlyEquippedItem != Item)
-									{
-										UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Slot is occupied by different item %s, returning original item to inventory"), *CurrentlyEquippedItem->GetName());
-										// Slot is taken by a different item, just return our item to inventory
-										break; // This will cause bReEquipped to remain false and trigger fallback
-									}
-									
-									// Clear the slot first if it has an item (should be the same item or empty)
-									if (IsValid(CurrentlyEquippedItem))
-									{
-										SpatialInventory->ClearSlotOfItem(EquippedSlot);
-										UInv_EquippedSlottedItem* CurrentEquippedSlottedItem = EquippedSlot->GetEquippedSlottedItem();
-										if (IsValid(CurrentEquippedSlottedItem))
-										{
-											SpatialInventory->RemoveEquippedSlottedItem(CurrentEquippedSlottedItem);
-										}
-									}
-									
-									// Re-equip the item
-									const float LocalTileSize = SpatialInventory->GetTileSize();
-									UInv_EquippedSlottedItem* EquippedSlottedItem = EquippedSlot->OnItemEquipped(
-										Item,
-										EquippedSlot->GetEquipmentTypeTag(),
-										LocalTileSize
-									);
-									if (IsValid(EquippedSlottedItem))
-									{
-										EquippedSlottedItem->OnEquippedSlottedItemClicked.AddDynamic(SpatialInventory, &UInv_SpatialInventory::EquippedSlottedItemClicked);
-										
-										// Notify the server about the re-equipment
-										UInv_InventoryComponent* LocalInventoryComponent = UInv_InventoryStatics::GetInventoryComponent(GetOwningPlayer());
-										if (IsValid(LocalInventoryComponent))
-										{
-											LocalInventoryComponent->Server_EquipSlotClicked(Item, CurrentlyEquippedItem);
-										}
-										
-										bReEquipped = true;
-										UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Successfully re-equipped item %s"), *Item->GetName());
-									}
-									break;
-									}
-								}
-							}
-							
-							if (!bReEquipped)
-							{
-								UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Could not re-equip item, returning to inventory"));
-								// Fallback to normal inventory placement
-								UInv_GridItemPlacement::AddItemAtIndex(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
-								UInv_GridItemPlacement::UpdateGridSlots(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
-							}
-							} // Close the else block for recently unequipped check
-						}
-						else
-						{
-							// Fallback to normal inventory placement
-							UInv_GridItemPlacement::AddItemAtIndex(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
-							UInv_GridItemPlacement::UpdateGridSlots(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
-						}
-					}
-					else
-					{
-						// Regular item, recreate at its last position
-						UInv_GridItemPlacement::AddItemAtIndex(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
-						UInv_GridItemPlacement::UpdateGridSlots(LastGrid, Item, LastPosition, bWasStackable, LastStackCount);
-						
-						UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Recreated regular item %s at position %d in grid %s"), 
-							*Item->GetName(), LastPosition, *GetNameSafe(LastGrid));
-					}
-					
-					// Clear the hover item after handling
-					UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
-				}
-				else
-				{
-					// Fallback: just clear the hover item if we can't recreate it
-					UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
-					UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Could not recreate item - clearing hover item"));
-				}
+				UE_LOG(LogTemp, Warning, TEXT("[OnInventoryMenuToggled] Clearing hover item on inventory close"));
+				UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
 			}
 		}
 	}
@@ -591,14 +463,30 @@ void UInv_InventoryGrid::SwapWithHoverItem(UInv_InventoryItem* ClickedInventoryI
 {
 	if (!IsValid(HoverItem)) return;
 
+	// Store hover item info before modifying it
 	UInv_InventoryItem* TempInventoryItem = HoverItem->GetInventoryItem();
 	const int32 TempStackCount = HoverItem->GetStackCount();
 	const bool bTempIsStackable = HoverItem->IsStackable();
+	UInv_InventoryGrid* OriginalGrid = HoverItem->GetOwnerGrid();
+	int32 OriginalIndex = HoverItem->GetPreviousGridIndex();
 
-	UInv_GridHoverManagement::AssignHoverItem(this, ClickedInventoryItem, GridIndex, HoverItem->GetPreviousGridIndex());
+	// Remove the clicked item from its current position
 	UInv_GridItemPlacement::RemoveItemFromGrid(this, ClickedInventoryItem, GridIndex);
+	
+	// Place the hover item in the clicked item's position
 	UInv_GridItemPlacement::AddItemAtIndex(this, TempInventoryItem, ItemDropIndex, bTempIsStackable, TempStackCount);
 	UInv_GridItemPlacement::UpdateGridSlots(this, TempInventoryItem, ItemDropIndex, bTempIsStackable, TempStackCount);
+	
+	// Remove the hover item from its original position
+	if (IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SwapWithHoverItem: Removing hover item from original position: Grid=%s, Index=%d"), 
+			*GetNameSafe(OriginalGrid), OriginalIndex);
+		UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, TempInventoryItem, OriginalIndex);
+	}
+
+	// Make the clicked item the new hover item
+	UInv_GridHoverManagement::AssignHoverItem(this, ClickedInventoryItem, GridIndex, GridIndex);
 }
 
 /************************************************************************************

@@ -36,6 +36,9 @@ public:
 	UInv_InventoryGrid* GetOwnerGrid() const;
 	void SetOwnerGrid(UInv_InventoryGrid* Grid);
 	
+	bool WasPreviouslyEquipped() const { return bWasPreviouslyEquipped; }
+	void SetWasPreviouslyEquipped(bool bWasEquipped) { bWasPreviouslyEquipped = bWasEquipped; }
+	
 private:
 
 	UPROPERTY(meta = (BindWidget))
@@ -50,5 +53,6 @@ private:
 	TWeakObjectPtr<UInv_InventoryGrid> OwnerGrid;
 	bool bIsStackable{false};
 	int32 StackCount{0};
+	bool bWasPreviouslyEquipped{false};
 
 };

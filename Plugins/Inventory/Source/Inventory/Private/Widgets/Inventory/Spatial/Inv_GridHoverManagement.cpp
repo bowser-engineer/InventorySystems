@@ -65,7 +65,7 @@ void UInv_GridHoverManagement::PickUp(UInv_InventoryGrid* Grid, UInv_InventoryIt
 		*GetNameSafe(Grid), GridIndex, *GetNameSafe(ClickedInventoryItem));
 
 	AssignHoverItem(Grid, ClickedInventoryItem, GridIndex, GridIndex);
-	UInv_GridItemPlacement::RemoveItemFromGrid(Grid, ClickedInventoryItem, GridIndex);
+	// Don't remove the item from grid yet - only remove it when successfully placed elsewhere
 
 	// Only set SourceGrid to self if there's no existing valid SourceGrid (preserve the chain)
 	if (!Grid->SourceGrid.IsValid())
@@ -111,6 +111,7 @@ void UInv_GridHoverManagement::ClearHoverItem(UInv_InventoryGrid* Grid)
 	Grid->HoverItem->UpdateStackCount(0);
 	Grid->HoverItem->SetImageBrush(FSlateNoResource());
 	Grid->HoverItem->SetOwnerGrid(nullptr);
+	Grid->HoverItem->SetWasPreviouslyEquipped(false);
 
 	Grid->HoverItem->RemoveFromParent();
 	Grid->HoverItem = nullptr;
@@ -269,10 +270,24 @@ void UInv_GridHoverManagement::PutDownOnIndex(UInv_InventoryGrid* Grid, const in
 
 	UE_LOG(LogTemp, Warning, TEXT("Putting down item at index %d"), Index);
 
-	UInv_GridItemPlacement::AddItemAtIndex(Grid, Grid->HoverItem->GetInventoryItem(), Index, 
-										   Grid->HoverItem->IsStackable(), Grid->HoverItem->GetStackCount());
-	UInv_GridItemPlacement::UpdateGridSlots(Grid, Grid->HoverItem->GetInventoryItem(), Index, 
-											Grid->HoverItem->IsStackable(), Grid->HoverItem->GetStackCount());
+	// Store hover item info before clearing
+	UInv_InventoryItem* HoverInventoryItem = Grid->HoverItem->GetInventoryItem();
+	UInv_InventoryGrid* OriginalGrid = Grid->HoverItem->GetOwnerGrid();
+	int32 OriginalIndex = Grid->HoverItem->GetPreviousGridIndex();
+	bool bIsStackable = Grid->HoverItem->IsStackable();
+	int32 StackCount = Grid->HoverItem->GetStackCount();
+
+	// Add the item to the new position
+	UInv_GridItemPlacement::AddItemAtIndex(Grid, HoverInventoryItem, Index, bIsStackable, StackCount);
+	UInv_GridItemPlacement::UpdateGridSlots(Grid, HoverInventoryItem, Index, bIsStackable, StackCount);
+
+	// Now remove the item from its original position (only if successful placement)
+	if (IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Removing item from original position: Grid=%s, Index=%d"), 
+			*GetNameSafe(OriginalGrid), OriginalIndex);
+		UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, HoverInventoryItem, OriginalIndex);
+	}
 
 	if (UInv_InventoryGrid* HoverGrid = UInv_GridInitialization::GetGridWithHoverItem(Grid)) 
 	{
