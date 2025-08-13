@@ -245,13 +245,85 @@ void UInv_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 	}
 }
 
+void UInv_InventoryGrid::OnSlottedItemReleased(int32 GridIndex, const FPointerEvent& MouseEvent)
+{
+	UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemReleased] Called for grid %s, slot %d"), *GetName(), GridIndex);
+	
+	// Check if we have a hover item to potentially stack with the released target
+	if (!IsValid(HoverItem))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemReleased] No hover item to stack"));
+		return;
+	}
+	
+	// Log hover item details for debugging
+	UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemReleased] HoverItem: %s, StackCount: %d, PreviousIndex: %d"), 
+		*GetNameSafe(HoverItem->GetInventoryItem()), HoverItem->GetStackCount(), HoverItem->GetPreviousGridIndex());
+	UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemReleased] OwnerGrid: %s, IsFromSplit: %s"), 
+		*GetNameSafe(HoverItem->GetOwnerGrid()), HoverItem->IsFromSplitOperation() ? TEXT("TRUE") : TEXT("FALSE"));
+	
+	// Check if this is the same grid
+	if (!GridSlots.IsValidIndex(GridIndex))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemReleased] Invalid grid index: %d"), GridIndex);
+		return;
+	}
+	
+	UInv_InventoryItem* TargetInventoryItem = GridSlots[GridIndex]->GetInventoryItem().Get();
+	if (!IsValid(TargetInventoryItem))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemReleased] No item at target slot"));
+		return;
+	}
+	
+	UInv_InventoryItem* HoverInventoryItem = HoverItem->GetInventoryItem();
+	if (!IsValid(HoverInventoryItem))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemReleased] Invalid hover item"));
+		return;
+	}
+	
+	// Check if they are stackable items of the same type
+	if (UInv_GridPopupInteractions::IsSameStackable(this, TargetInventoryItem))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemReleased] Same grid stackable items detected - calling HandleStackableItemInteraction"));
+		HandleStackableItemInteraction(TargetInventoryItem, GridIndex);
+	}
+	else
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[OnSlottedItemReleased] Items not stackable or different types"));
+	}
+}
+
 void UInv_InventoryGrid::HandleStackableItemInteraction(UInv_InventoryItem* ClickedInventoryItem, int32 GridIndex)
 {
+	// Safety checks
+	if (!IsValid(ClickedInventoryItem) || !GridSlots.IsValidIndex(GridIndex) || !IsValid(HoverItem))
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[HandleStackableItemInteraction] Invalid parameters - aborting"));
+		return;
+	}
+
 	const int32 ClickedStackCount = GridSlots[GridIndex]->GetStackCount();
 	const FInv_StackableFragment* StackableFragment = ClickedInventoryItem->GetItemManifest().GetFragmentOfType<FInv_StackableFragment>();
+	
+	if (!StackableFragment)
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[HandleStackableItemInteraction] No stackable fragment found - aborting"));
+		return;
+	}
+	
 	const int32 MaxStackSize = StackableFragment->GetMaxStackSize();
 	const int32 RoomInClickedSlot = MaxStackSize - ClickedStackCount;
 	const int32 HoveredStackCount = HoverItem->GetStackCount();
+
+	// Additional safety checks for stack counts
+	if (ClickedStackCount < 0 || HoveredStackCount <= 0 || MaxStackSize <= 0)
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[HandleStackableItemInteraction] Invalid stack counts - Clicked: %d, Hovered: %d, Max: %d"), 
+			ClickedStackCount, HoveredStackCount, MaxStackSize);
+		return;
+	}
 
 	if (UInv_GridPopupInteractions::ShouldSwapStackCounts(RoomInClickedSlot, HoveredStackCount, MaxStackSize))
 	{
@@ -272,7 +344,7 @@ void UInv_InventoryGrid::HandleStackableItemInteraction(UInv_InventoryItem* Clic
 	}
 
 	// If none of the stacking operations succeeded, do nothing (keep item hovering)
-	UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Stackable item interaction failed - placement not allowed"));
+	UE_LOG(LogInventory, Warning, TEXT("[HandleStackableItemInteraction] No valid stacking operation found - placement not allowed"));
 }
 
 bool UInv_InventoryGrid::HasHoverItem() const

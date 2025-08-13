@@ -19,6 +19,13 @@ FReply UInv_SlottedItem::NativeOnMouseButtonDown(const FGeometry& MyGeometry, co
 	return FReply::Handled();
 }
 
+FReply UInv_SlottedItem::NativeOnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	// Handle mouse up for potential stacking operations
+	OnSlottedItemReleased.Broadcast(GridIndex, MouseEvent);
+	return FReply::Handled();
+}
+
 void UInv_SlottedItem::NativeOnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	UInv_InventoryStatics::ItemHovered(GetOwningPlayer(), InventoryItem.Get());

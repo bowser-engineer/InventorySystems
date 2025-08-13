@@ -266,6 +266,7 @@ UInv_SlottedItem* UInv_GridItemPlacement::CreateSlottedItem(UInv_InventoryGrid* 
 	const int32 StackUpdateAmount = bStackable ? StackAmount : 0;
 	SlottedItem->UpdateStackCount(StackUpdateAmount);
 	SlottedItem->OnSlottedItemClicked.AddDynamic(Grid, &UInv_InventoryGrid::OnSlottedItemClicked);
+	SlottedItem->OnSlottedItemReleased.AddDynamic(Grid, &UInv_InventoryGrid::OnSlottedItemReleased);
 
 	return SlottedItem;
 }

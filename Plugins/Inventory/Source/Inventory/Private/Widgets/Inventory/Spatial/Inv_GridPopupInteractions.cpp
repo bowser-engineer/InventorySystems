@@ -142,22 +142,34 @@ bool UInv_GridPopupInteractions::IsSameStackable(const UInv_InventoryGrid* Grid,
 
 bool UInv_GridPopupInteractions::ShouldSwapStackCounts(const int32 RoomInClickedSlot, const int32 HoveredStackCount, const int32 MaxStackSize)
 {
+	// Safety checks: ensure valid values
+	if (RoomInClickedSlot < 0 || HoveredStackCount <= 0 || MaxStackSize <= 0) return false;
+	
 	return RoomInClickedSlot == 0 && HoveredStackCount < MaxStackSize;
 }
 
 bool UInv_GridPopupInteractions::ShouldConsumeHoverItemStacks(const int32 HoveredStackCount, const int32 RoomInClickedSlot)
 {
+	// Safety checks: ensure valid values
+	if (HoveredStackCount <= 0 || RoomInClickedSlot < 0) return false;
+	
 	return RoomInClickedSlot >= HoveredStackCount;
 }
 
 bool UInv_GridPopupInteractions::ShouldFillInStack(const int32 RoomInClickedSlot, const int32 HoveredStackCount)
 {
+	// Safety checks: ensure valid values  
+	if (RoomInClickedSlot <= 0 || HoveredStackCount <= 0) return false;
+	
 	return RoomInClickedSlot < HoveredStackCount;
 }
 
 void UInv_GridPopupInteractions::SwapStackCounts(UInv_InventoryGrid* Grid, const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
 {
 	if (!IsValid(Grid) || !Grid->GridSlots.IsValidIndex(Index)) return;
+
+	UE_LOG(LogTemp, Warning, TEXT("[SwapStackCounts] Clicked: %d, Hovered: %d, Target Index: %d"),
+		ClickedStackCount, HoveredStackCount, Index);
 
 	UInv_GridSlot* GridSlot = Grid->GridSlots[Index];
 	GridSlot->SetStackCount(HoveredStackCount);
@@ -170,13 +182,60 @@ void UInv_GridPopupInteractions::SwapStackCounts(UInv_InventoryGrid* Grid, const
 
 	if (IsValid(Grid->HoverItem))
 	{
-		Grid->HoverItem->UpdateStackCount(ClickedStackCount);
+		// Check if the clicked stack count is 0 (all items transferred to clicked slot)
+		if (ClickedStackCount <= 0)
+		{
+			UInv_InventoryItem* HoverInventoryItem = Grid->HoverItem->GetInventoryItem();
+			UInv_InventoryGrid* SourceGrid = Grid->HoverItem->GetOwnerGrid();
+			int32 PreviousIndex = Grid->HoverItem->GetPreviousGridIndex();
+			
+			UE_LOG(LogTemp, Warning, TEXT("[SwapStackCounts] Empty hover - removing original. SourceGrid: %s, PreviousIndex: %d"), 
+				*GetNameSafe(SourceGrid), PreviousIndex);
+			
+			// Handle removal from source grid if needed
+			if (IsValid(SourceGrid) && SourceGrid->GridSlots.IsValidIndex(PreviousIndex))
+			{
+				// Check if this was from a split operation (partial stack)
+				if (Grid->HoverItem->IsFromSplitOperation())
+				{
+					// For split operations, we already reduced the original stack count in OnPopUpMenuSplit
+					// No need to remove anything from source
+					UE_LOG(LogTemp, Warning, TEXT("[SwapStackCounts] Skip removal - from split operation"));
+				}
+				// Check if this is a cross-grid transfer (different grid)
+				else if (SourceGrid != Grid)
+				{
+					// Remove the entire item from the source grid since all stacks were transferred
+					UE_LOG(LogTemp, Warning, TEXT("[SwapStackCounts] Removing from source grid - cross-grid transfer"));
+					UInv_GridItemPlacement::RemoveItemFromGrid(SourceGrid, HoverInventoryItem, PreviousIndex);
+				}
+				// Same grid transfer - need to remove original item
+				else if (SourceGrid == Grid)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[SwapStackCounts] Removing from same grid - PreviousIndex: %d"), PreviousIndex);
+					UInv_GridItemPlacement::RemoveItemFromGrid(SourceGrid, HoverInventoryItem, PreviousIndex);
+				}
+			}
+			
+			// Clear the hover item since it's empty
+			UInv_GridHoverManagement::ClearHoverItem(Grid);
+			UInv_GridHoverManagement::ShowCursor(Grid);
+		}
+		else
+		{
+			// Update the hover item with the swapped stack count
+			UE_LOG(LogTemp, Warning, TEXT("[SwapStackCounts] Updating hover item with swapped count: %d"), ClickedStackCount);
+			Grid->HoverItem->UpdateStackCount(ClickedStackCount);
+		}
 	}
 }
 
 void UInv_GridPopupInteractions::ConsumeHoverItemStacks(UInv_InventoryGrid* Grid, const int32 ClickedStackCount, const int32 HoveredStackCount, const int32 Index)
 {
 	if (!IsValid(Grid) || !Grid->GridSlots.IsValidIndex(Index)) return;
+
+	UE_LOG(LogTemp, Warning, TEXT("[ConsumeHoverItemStacks] Clicked: %d, Hovered: %d, Target Index: %d"),
+		ClickedStackCount, HoveredStackCount, Index);
 
 	const int32 AmountToTransfer = HoveredStackCount;
 	const int32 NewClickedStackCount = ClickedStackCount + AmountToTransfer;
@@ -185,6 +244,50 @@ void UInv_GridPopupInteractions::ConsumeHoverItemStacks(UInv_InventoryGrid* Grid
 	if (Grid->SlottedItems.Contains(Index))
 	{
 		Grid->SlottedItems.FindChecked(Index)->UpdateStackCount(NewClickedStackCount);
+	}
+	
+	// When consuming all hover item stacks, we need to remove the original item from its source grid
+	// if it came from a split operation or cross-grid transfer
+	if (IsValid(Grid->HoverItem))
+	{
+		UInv_InventoryItem* HoverInventoryItem = Grid->HoverItem->GetInventoryItem();
+		UInv_InventoryGrid* SourceGrid = Grid->HoverItem->GetOwnerGrid();
+		int32 PreviousIndex = Grid->HoverItem->GetPreviousGridIndex();
+		
+		UE_LOG(LogTemp, Warning, TEXT("[ConsumeHoverItemStacks] SourceGrid: %s, PreviousIndex: %d, Same Grid: %s"),
+			*GetNameSafe(SourceGrid), PreviousIndex, (SourceGrid == Grid) ? TEXT("TRUE") : TEXT("FALSE"));
+		UE_LOG(LogTemp, Warning, TEXT("[ConsumeHoverItemStacks] IsFromSplit: %s"),
+			Grid->HoverItem->IsFromSplitOperation() ? TEXT("TRUE") : TEXT("FALSE"));
+		
+		// If the hover item came from a split operation or different grid, remove the original stack
+		if (IsValid(SourceGrid) && SourceGrid->GridSlots.IsValidIndex(PreviousIndex))
+		{
+			bool bShouldRemoveFromSource = false;
+			
+			// Check if this was from a split operation (partial stack)
+			if (Grid->HoverItem->IsFromSplitOperation())
+			{
+				// For split operations, we already reduced the original stack count in OnPopUpMenuSplit
+				// No need to remove anything from source
+				bShouldRemoveFromSource = false;
+				UE_LOG(LogTemp, Warning, TEXT("[ConsumeHoverItemStacks] Skip removal - from split operation"));
+			}
+			// Check if this is a cross-grid transfer (different grid)
+			else if (SourceGrid != Grid)
+			{
+				// Remove the entire item from the source grid since all stacks were transferred
+				UE_LOG(LogTemp, Warning, TEXT("[ConsumeHoverItemStacks] Removing from source grid - cross-grid transfer"));
+				UInv_GridItemPlacement::RemoveItemFromGrid(SourceGrid, HoverInventoryItem, PreviousIndex);
+				bShouldRemoveFromSource = true;
+			}
+			// Same grid transfer - need to remove original item
+			else if (SourceGrid == Grid)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[ConsumeHoverItemStacks] Removing from same grid - PreviousIndex: %d"), PreviousIndex);
+				UInv_GridItemPlacement::RemoveItemFromGrid(SourceGrid, HoverInventoryItem, PreviousIndex);
+				bShouldRemoveFromSource = true;
+			}
+		}
 	}
 	
 	UInv_GridHoverManagement::ClearHoverItem(Grid);
@@ -202,6 +305,9 @@ void UInv_GridPopupInteractions::FillInStack(UInv_InventoryGrid* Grid, const int
 {
 	if (!IsValid(Grid) || !Grid->GridSlots.IsValidIndex(Index)) return;
 
+	UE_LOG(LogTemp, Warning, TEXT("[FillInStack] FillAmount: %d, Remainder: %d, Target Index: %d"),
+		FillAmount, Remainder, Index);
+
 	UInv_GridSlot* GridSlot = Grid->GridSlots[Index];
 	const int32 NewStackCount = GridSlot->GetStackCount() + FillAmount;
 
@@ -215,6 +321,50 @@ void UInv_GridPopupInteractions::FillInStack(UInv_InventoryGrid* Grid, const int
 
 	if (IsValid(Grid->HoverItem))
 	{
-		Grid->HoverItem->UpdateStackCount(Remainder);
+		// If there's no remainder, the hover item stack is fully depleted
+		if (Remainder <= 0)
+		{
+			UInv_InventoryItem* HoverInventoryItem = Grid->HoverItem->GetInventoryItem();
+			UInv_InventoryGrid* SourceGrid = Grid->HoverItem->GetOwnerGrid();
+			int32 PreviousIndex = Grid->HoverItem->GetPreviousGridIndex();
+			
+			UE_LOG(LogTemp, Warning, TEXT("[FillInStack] No remainder - removing original. SourceGrid: %s, PreviousIndex: %d"),
+				*GetNameSafe(SourceGrid), PreviousIndex);
+			
+			// Handle removal from source grid if needed
+			if (IsValid(SourceGrid) && SourceGrid->GridSlots.IsValidIndex(PreviousIndex))
+			{
+				// Check if this was from a split operation (partial stack)
+				if (Grid->HoverItem->IsFromSplitOperation())
+				{
+					// For split operations, we already reduced the original stack count in OnPopUpMenuSplit
+					// No need to remove anything from source
+					UE_LOG(LogTemp, Warning, TEXT("[FillInStack] Skip removal - from split operation"));
+				}
+				// Check if this is a cross-grid transfer (different grid)
+				else if (SourceGrid != Grid)
+				{
+					// Remove the entire item from the source grid since all stacks were transferred
+					UE_LOG(LogTemp, Warning, TEXT("[FillInStack] Removing from source grid - cross-grid transfer"));
+					UInv_GridItemPlacement::RemoveItemFromGrid(SourceGrid, HoverInventoryItem, PreviousIndex);
+				}
+				// Same grid transfer - need to remove original item
+				else if (SourceGrid == Grid)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[FillInStack] Removing from same grid - PreviousIndex: %d"), PreviousIndex);
+					UInv_GridItemPlacement::RemoveItemFromGrid(SourceGrid, HoverInventoryItem, PreviousIndex);
+				}
+			}
+			
+			// Clear the hover item since it's fully depleted
+			UInv_GridHoverManagement::ClearHoverItem(Grid);
+			UInv_GridHoverManagement::ShowCursor(Grid);
+		}
+		else
+		{
+			// Update the hover item with the remaining stack count
+			UE_LOG(LogTemp, Warning, TEXT("[FillInStack] Updating hover item with remainder: %d"), Remainder);
+			Grid->HoverItem->UpdateStackCount(Remainder);
+		}
 	}
 }

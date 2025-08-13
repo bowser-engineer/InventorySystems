@@ -101,6 +101,9 @@ public:
 	void OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent);
 
 	UFUNCTION()
+	void OnSlottedItemReleased(int32 GridIndex, const FPointerEvent& MouseEvent);
+
+	UFUNCTION()
 	void HandleStackableItemInteraction(UInv_InventoryItem* ClickedInventoryItem, int32 GridIndex);
 
 	UFUNCTION()

@@ -192,10 +192,12 @@ FReply UInv_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometr
 
 FReply UInv_SpatialInventory::NativeOnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	// Check if there's a hover item and clear it when releasing outside of grids
-	UE_LOG(LogInventory, Warning, TEXT("[SpatialInventory] Mouse released outside grid - clearing hover item"));
-	UInv_InventoryStatics::ClearHoverItem(Cast<UInv_InventoryGrid>(this));
-	return FReply::Handled();
+	// Let child widgets handle the mouse release first
+	UE_LOG(LogInventory, Warning, TEXT("[SpatialInventory] Mouse released - allowing event propagation to child widgets"));
+	
+	// Return Unhandled to allow the event to propagate to child widgets (grid slots, slotted items)
+	// Child widgets should handle their own stacking logic and clear hover items when appropriate
+	return FReply::Unhandled();
 }
 
 void UInv_SpatialInventory::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)

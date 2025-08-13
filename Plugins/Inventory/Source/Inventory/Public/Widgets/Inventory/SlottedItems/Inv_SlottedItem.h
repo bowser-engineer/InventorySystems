@@ -11,6 +11,7 @@ class UImage;
 class UTextBlock;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSlottedItemClicked, int32, GridIndex, const FPointerEvent&, MouseEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSlottedItemReleased, int32, GridIndex, const FPointerEvent&, MouseEvent);
 
 UCLASS()
 class INVENTORY_API UInv_SlottedItem : public UUserWidget
@@ -19,6 +20,7 @@ class INVENTORY_API UInv_SlottedItem : public UUserWidget
 
 public:
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply NativeOnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void NativeOnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& MouseEvent) override;
 	
@@ -35,6 +37,7 @@ public:
 	void UpdateStackCount(int32 StackCount);
 
 	FSlottedItemClicked OnSlottedItemClicked;
+	FSlottedItemReleased OnSlottedItemReleased;
 private:
 
 	UPROPERTY(meta = (BindWidget))
