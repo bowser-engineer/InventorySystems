@@ -79,6 +79,7 @@ void UInv_GridPopupInteractions::OnPopUpMenuSplit(UInv_InventoryGrid* Grid, int3
 	if (IsValid(Grid->HoverItem))
 	{
 		Grid->HoverItem->UpdateStackCount(SplitAmount);
+		Grid->HoverItem->SetIsFromSplitOperation(true);
 	}
 }
 

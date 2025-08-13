@@ -39,6 +39,9 @@ public:
 	bool WasPreviouslyEquipped() const { return bWasPreviouslyEquipped; }
 	void SetWasPreviouslyEquipped(bool bWasEquipped) { bWasPreviouslyEquipped = bWasEquipped; }
 	
+	bool IsFromSplitOperation() const { return bIsFromSplitOperation; }
+	void SetIsFromSplitOperation(bool bFromSplit) { bIsFromSplitOperation = bFromSplit; }
+	
 private:
 
 	UPROPERTY(meta = (BindWidget))
@@ -54,5 +57,6 @@ private:
 	bool bIsStackable{false};
 	int32 StackCount{0};
 	bool bWasPreviouslyEquipped{false};
+	bool bIsFromSplitOperation{false};
 
 };

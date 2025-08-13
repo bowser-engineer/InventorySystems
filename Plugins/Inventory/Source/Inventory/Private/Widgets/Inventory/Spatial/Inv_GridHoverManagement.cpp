@@ -114,6 +114,7 @@ void UInv_GridHoverManagement::ClearHoverItem(UInv_InventoryGrid* Grid)
 	Grid->HoverItem->SetImageBrush(FSlateNoResource());
 	Grid->HoverItem->SetOwnerGrid(nullptr);
 	Grid->HoverItem->SetWasPreviouslyEquipped(false);
+	Grid->HoverItem->SetIsFromSplitOperation(false);
 
 	Grid->HoverItem->RemoveFromParent();
 	Grid->HoverItem = nullptr;
@@ -261,6 +262,7 @@ void UInv_GridHoverManagement::PutDownOnIndex(UInv_InventoryGrid* Grid, const in
 	bool bIsStackable = Grid->HoverItem->IsStackable();
 	int32 StackCount = Grid->HoverItem->GetStackCount();
 	bool bWasPreviouslyEquipped = Grid->HoverItem->WasPreviouslyEquipped();
+	bool bIsFromSplitOperation = Grid->HoverItem->IsFromSplitOperation();
 
 	// Add the item to the new position
 	UInv_GridItemPlacement::AddItemAtIndex(Grid, HoverInventoryItem, Index, bIsStackable, StackCount);
@@ -268,11 +270,16 @@ void UInv_GridHoverManagement::PutDownOnIndex(UInv_InventoryGrid* Grid, const in
 
 	// Now remove the item from its original position (only if successful placement)
 	// BUT NOT if the item was previously equipped - equipped items don't have an inventory position to remove from
-	if (!bWasPreviouslyEquipped && IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
+	// AND NOT if this is a split operation - the original stack should remain in place
+	if (!bWasPreviouslyEquipped && !bIsFromSplitOperation && IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Removing item from original position: Grid=%s, Index=%d"), 
 			*GetNameSafe(OriginalGrid), OriginalIndex);
 		UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, HoverInventoryItem, OriginalIndex);
+	}
+	else if (bIsFromSplitOperation)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Split operation - keeping original stack in place"));
 	}
 	else if (bWasPreviouslyEquipped)
 	{
