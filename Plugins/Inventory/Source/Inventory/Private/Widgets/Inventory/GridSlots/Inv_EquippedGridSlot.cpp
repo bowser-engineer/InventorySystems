@@ -167,3 +167,17 @@ UInv_EquippedSlottedItem* UInv_EquippedGridSlot::OnItemEquipped(UInv_InventoryIt
 	// Return the Equipped Slotted Item widget
 	return EquippedSlottedItem;
 }
+
+void UInv_EquippedGridSlot::ClearEquippedItem()
+{
+	// Clear the data
+	SetEquippedSlottedItem(nullptr);
+	SetInventoryItem(nullptr);
+	// Update visual state to show the slot is empty
+	SetUnoccupiedTexture();
+	// Make the grayed out icon visible to show the slot is available
+	if (IsValid(Image_GrayedOutIcon))
+	{
+		Image_GrayedOutIcon->SetVisibility(ESlateVisibility::Visible);
+	}
+}

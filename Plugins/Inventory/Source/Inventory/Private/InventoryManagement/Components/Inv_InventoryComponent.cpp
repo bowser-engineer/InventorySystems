@@ -300,6 +300,9 @@ void UInv_InventoryComponent::CloseInventoryMenu()
 {
 	if (!IsValid(InventoryMenu)) return;
 
+	// Return any hover items to their original positions before closing
+	InventoryMenu->ReturnHoverItemsToOriginalPositions();
+
 	InventoryMenu->SetVisibility(ESlateVisibility::Collapsed);
 	bInventoryMenuOpen = false;
 

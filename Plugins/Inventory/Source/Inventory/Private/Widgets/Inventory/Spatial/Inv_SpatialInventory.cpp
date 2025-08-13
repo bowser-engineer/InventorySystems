@@ -78,10 +78,27 @@ void UInv_SpatialInventory::EquippedGridSlotClicked(UInv_EquippedGridSlot* Equip
 		InventoryComponent->Server_EquipSlotClicked(HoverItem->GetInventoryItem(), nullptr);
 	}
 	
-	// Remove the item from its original inventory position if it's being equipped from inventory
-	// (but not if it's being moved between equipment slots)
-	if (!OriginalEquippedSlot.IsValid() || !OriginalEquippedItem.IsValid() || 
-		HoverItem->GetInventoryItem() != OriginalEquippedItem.Get())
+	// Check if we need to remove from original equipped slot or inventory
+	bool bWasPreviouslyEquipped = OriginalEquippedSlot.IsValid() && OriginalEquippedItem.IsValid() && 
+								  HoverItem->GetInventoryItem() == OriginalEquippedItem.Get();
+								  
+	if (bWasPreviouslyEquipped)
+	{
+		// Item was previously equipped - remove it from original equipment slot
+		UE_LOG(LogTemp, Warning, TEXT("[EquippedGridSlotClicked] Removing item %s from original equipped slot"), *OriginalEquippedItem->GetName());
+		
+		// Find and remove the equipped slotted item from the original slot
+		if (UInv_EquippedSlottedItem* OldEquippedSlottedItem = OriginalEquippedSlot->GetEquippedSlottedItem())
+		{
+			RemoveEquippedSlottedItem(OldEquippedSlottedItem);
+		}
+		ClearSlotOfItem(OriginalEquippedSlot.Get());
+		
+		// Clear the references since we've now moved the item
+		OriginalEquippedSlot.Reset();
+		OriginalEquippedItem.Reset();
+	}
+	else
 	{
 		// This is a new item being equipped from inventory, so remove it from inventory
 		UInv_InventoryGrid* HoverItemOwnerGrid = HoverItem->GetOwnerGrid();
@@ -153,8 +170,9 @@ void UInv_SpatialInventory::EquippedSlottedItemClicked(UInv_EquippedSlottedItem*
 	// Make a new equipped slotted item (for the item we held in HoverItem) if we're swapping
 	if (ItemToEquip)
 	{
-		// Remove the old equipped item from UI only (don't unequip yet)
+		// Remove the old equipped item from UI and replace with new one
 		RemoveEquippedSlottedItem(EquippedSlottedItem);
+		ClearSlotOfItem(EquippedGridSlot);
 		MakeEquippedSlottedItem(EquippedSlottedItem, EquippedGridSlot, ItemToEquip);
 		
 		// Only broadcast equipping of new item, not unequipping of old one yet
@@ -162,12 +180,8 @@ void UInv_SpatialInventory::EquippedSlottedItemClicked(UInv_EquippedSlottedItem*
 		check(IsValid(InventoryComponent));
 		InventoryComponent->Server_EquipSlotClicked(ItemToEquip, nullptr);
 	}
-	else
-	{
-		// Just picking up the equipped item - remove from UI but don't unequip yet
-		RemoveEquippedSlottedItem(EquippedSlottedItem);
-		ClearSlotOfItem(EquippedGridSlot);
-	}
+	// If just picking up the equipped item, DON'T remove it from UI yet
+	// It should remain visible until successfully placed elsewhere
 }
 
 FReply UInv_SpatialInventory::NativeOnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -291,8 +305,7 @@ void UInv_SpatialInventory::ClearSlotOfItem(UInv_EquippedGridSlot* EquippedGridS
 {
 	if (IsValid(EquippedGridSlot))
 	{
-		EquippedGridSlot->SetEquippedSlottedItem(nullptr);
-		EquippedGridSlot->SetInventoryItem(nullptr);
+		EquippedGridSlot->ClearEquippedItem();
 	}
 }
 
@@ -488,6 +501,16 @@ void UInv_SpatialInventory::OnItemPlacedInInventory(UInv_InventoryItem* Item)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[OnItemPlacedInInventory] Unequipping item that was placed in inventory: %s"), *Item->GetName());
 		
+		// Remove the equipped item from its UI slot since it's now in inventory
+		if (OriginalEquippedSlot.IsValid())
+		{
+			if (UInv_EquippedSlottedItem* OldEquippedSlottedItem = OriginalEquippedSlot->GetEquippedSlottedItem())
+			{
+				RemoveEquippedSlottedItem(OldEquippedSlottedItem);
+			}
+			ClearSlotOfItem(OriginalEquippedSlot.Get());
+		}
+		
 		// Now actually unequip the item since it's been placed in inventory
 		UInv_InventoryComponent* InventoryComponent = UInv_InventoryStatics::GetInventoryComponent(GetOwningPlayer());
 		if (IsValid(InventoryComponent))
@@ -499,4 +522,67 @@ void UInv_SpatialInventory::OnItemPlacedInInventory(UInv_InventoryItem* Item)
 		OriginalEquippedSlot.Reset();
 		OriginalEquippedItem.Reset();
 	}
+}
+
+void UInv_SpatialInventory::ReturnHoverItemsToOriginalPositions()
+{
+	UE_LOG(LogTemp, Warning, TEXT("[ReturnHoverItemsToOriginalPositions] Checking for hover items to return"));
+
+	// Find any grid that has a hover item
+	UInv_InventoryGrid* GridWithHoverItem = nullptr;
+	if (Grid_Backpack && Grid_Backpack->HasHoverItem()) 
+		GridWithHoverItem = Grid_Backpack;
+	else if (Grid_Locked && Grid_Locked->HasHoverItem()) 
+		GridWithHoverItem = Grid_Locked;
+	else if (Grid_Satchel && Grid_Satchel->HasHoverItem()) 
+		GridWithHoverItem = Grid_Satchel;
+	else if (Grid_Quiver && Grid_Quiver->HasHoverItem()) 
+		GridWithHoverItem = Grid_Quiver;
+
+	if (!GridWithHoverItem)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ReturnHoverItemsToOriginalPositions] No hover items found"));
+		return;
+	}
+
+	UInv_HoverItem* HoverItem = GridWithHoverItem->GetHoverItem();
+	if (!IsValid(HoverItem) || !IsValid(HoverItem->GetInventoryItem()))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ReturnHoverItemsToOriginalPositions] Invalid hover item"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[ReturnHoverItemsToOriginalPositions] Found hover item: %s"), *HoverItem->GetInventoryItem()->GetName());
+
+	// Check if this was a previously equipped item
+	if (HoverItem->WasPreviouslyEquipped() && OriginalEquippedSlot.IsValid() && OriginalEquippedItem.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ReturnHoverItemsToOriginalPositions] Returning equipped item to equipment slot"));
+		
+		// Return the equipped item to its equipment slot
+		UInv_EquippedSlottedItem* EquippedSlottedItem = OriginalEquippedSlot->OnItemEquipped(
+			OriginalEquippedItem.Get(),
+			OriginalEquippedSlot->GetEquipmentTypeTag(),
+			GetTileSize()
+		);
+		
+		if (EquippedSlottedItem)
+		{
+			EquippedSlottedItem->OnEquippedSlottedItemClicked.AddDynamic(this, &ThisClass::EquippedSlottedItemClicked);
+		}
+		
+		// Clear references
+		OriginalEquippedSlot.Reset();
+		OriginalEquippedItem.Reset();
+	}
+	else
+	{
+		// Return regular inventory item to its original grid position
+		UE_LOG(LogTemp, Warning, TEXT("[ReturnHoverItemsToOriginalPositions] Returning inventory item to original position"));
+		UInv_GridHoverManagement::PutHoverItemBack(GridWithHoverItem);
+		return; // PutHoverItemBack handles clearing the hover item
+	}
+
+	// Clear the hover item
+	UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
 }

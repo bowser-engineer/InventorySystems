@@ -33,6 +33,7 @@ public:
 	virtual bool HasHoverItem() const override;
 	virtual UInv_HoverItem* GetHoverItem() const override;
 	virtual float GetTileSize() const override;
+	virtual void ReturnHoverItemsToOriginalPositions() override;
 
 	const TArray<TObjectPtr<UInv_EquippedGridSlot>>& GetEquippedGridSlots() const { return EquippedGridSlots; }
 
