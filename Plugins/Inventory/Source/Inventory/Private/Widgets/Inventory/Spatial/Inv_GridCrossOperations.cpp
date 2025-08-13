@@ -452,11 +452,12 @@ bool UInv_GridCrossOperations::MatchesPreferredCategory(const UInv_InventoryGrid
 	}
 
 	// Satchel and Quiver grids only accept their specific preferred category
-	UE_LOG(LogInventory, Warning, TEXT("Matching Preferred %s to %s"),
-		*UEnum::GetValueAsString(Item->GetItemManifest().GetItemCategory()), 
+	// Use the item's PREFERRED category, not the regular item category
+	UE_LOG(LogInventory, Warning, TEXT("Matching Item PreferredCategory %s to Grid Category %s"),
+		*UEnum::GetValueAsString(Item->GetItemManifest().GetPreferredItemCategory()), 
 		*UEnum::GetValueAsString(Grid->ItemCategory));
 
-	bool bMatches = Item->GetItemManifest().GetItemCategory() == Grid->ItemCategory;
+	bool bMatches = Item->GetItemManifest().GetPreferredItemCategory() == Grid->ItemCategory;
 	UE_LOG(LogInventory, Warning, TEXT("Matching Preference: %s"), bMatches ? TEXT("true") : TEXT("false"));
 
 	return bMatches;
