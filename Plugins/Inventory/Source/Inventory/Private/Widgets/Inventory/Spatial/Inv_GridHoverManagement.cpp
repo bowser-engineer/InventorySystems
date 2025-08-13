@@ -281,6 +281,14 @@ void UInv_GridHoverManagement::PutDownOnIndex(UInv_InventoryGrid* Grid, const in
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Split operation - keeping original stack in place"));
 	}
+	
+	// Clear the split operation flag since the item has now been placed - future operations should treat it normally
+	// (Do this AFTER checking the flag for removal logic)
+	if (bIsFromSplitOperation && IsValid(Grid->HoverItem))
+	{
+		Grid->HoverItem->SetIsFromSplitOperation(false);
+		UE_LOG(LogTemp, Warning, TEXT("Cleared split operation flag after placement"));
+	}
 	else if (bWasPreviouslyEquipped)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Item was previously equipped - not removing from inventory position"));

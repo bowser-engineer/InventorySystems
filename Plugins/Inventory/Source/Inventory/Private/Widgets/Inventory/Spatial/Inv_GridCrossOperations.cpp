@@ -118,21 +118,43 @@ bool UInv_GridCrossOperations::HandleCrossGridStacking(UInv_InventoryGrid* Targe
 			}
 
 			const int32 Remainder = StackAmount - AmountToTransfer;
+			
+			// Store the split operation flag BEFORE potentially clearing it
+			bool bIsFromSplitOperation = LocalHoverItem->IsFromSplitOperation();
 
 			if (Remainder > 0) 
 			{
 				LocalHoverItem->UpdateStackCount(Remainder);
+				// Clear the split operation flag since the item has now been stacked - future operations should treat it normally
+				if (bIsFromSplitOperation)
+				{
+					LocalHoverItem->SetIsFromSplitOperation(false);
+					UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Cleared split operation flag after partial stacking"));
+				}
 			}
 			else 
 			{
 				// Remove the item from its original position since the entire stack was transferred
+				// BUT NOT if this is from a split operation - the original stack should remain in place
 				UInv_InventoryGrid* OriginalGrid = LocalHoverItem->GetOwnerGrid();
 				int32 OriginalIndex = LocalHoverItem->GetPreviousGridIndex();
-				if (IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
+				
+				if (!bIsFromSplitOperation && IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
 				{
 					UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Stacking: Removing entire stack from original position: Grid=%s, Index=%d"), 
 						*GetNameSafe(OriginalGrid), OriginalIndex);
 					UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, Item, OriginalIndex);
+				}
+				else if (bIsFromSplitOperation)
+				{
+					UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Stacking: Split operation - keeping original stack in place"));
+				}
+				
+				// Clear the split operation flag since the entire stack has now been transferred
+				if (bIsFromSplitOperation)
+				{
+					LocalHoverItem->SetIsFromSplitOperation(false);
+					UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Cleared split operation flag after complete stacking"));
 				}
 
 				// Set the target grid's SourceGrid to point to the source grid for future transfers
@@ -243,18 +265,32 @@ bool UInv_GridCrossOperations::PlaceItemFromOtherGrid(UInv_InventoryGrid* Target
 
 	// Remove the item from its original position now that it's successfully placed
 	// BUT NOT if the item was previously equipped - equipped items don't have an inventory position to remove from
+	// AND NOT if this is a split operation - the original stack should remain in place
 	UInv_InventoryGrid* OriginalGrid = HoverItem->GetOwnerGrid();
 	int32 OriginalIndex = HoverItem->GetPreviousGridIndex();
+	bool bIsFromSplitOperation = HoverItem->IsFromSplitOperation();
 	
-	if (!bWasPreviouslyEquipped && IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
+	if (!bWasPreviouslyEquipped && !bIsFromSplitOperation && IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
 	{
 		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Removing item from original position: Grid=%s, Index=%d"), 
 			*GetNameSafe(OriginalGrid), OriginalIndex);
 		UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, Item, OriginalIndex);
 	}
+	else if (bIsFromSplitOperation)
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Split operation - keeping original stack in place"));
+	}
 	else if (bWasPreviouslyEquipped)
 	{
 		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Item was previously equipped - not removing from inventory position"));
+	}
+	
+	// Clear the split operation flag since the item has now been placed - future operations should treat it normally
+	// (Do this AFTER checking the flag for removal logic)
+	if (bIsFromSplitOperation)
+	{
+		HoverItem->SetIsFromSplitOperation(false);
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Cleared split operation flag after cross-grid placement"));
 	}
 
 	// Set the target grid's SourceGrid to point to the source grid for future transfers
