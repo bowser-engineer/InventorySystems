@@ -2,6 +2,7 @@
 #include "Widgets/Inventory/Spatial/Inv_InventoryGrid.h"
 #include "Widgets/Inventory/Spatial/Inv_GridItemPlacement.h"
 #include "Widgets/Inventory/Spatial/Inv_GridInitialization.h"
+#include "Widgets/Inventory/Spatial/Inv_SpatialInventory.h"
 #include "Widgets/Inventory/HoverItem/Inv_HoverItem.h"
 #include "Widgets/Inventory/GridSlots/Inv_GridSlot.h"
 #include "InventoryManagement/Utils/Inv_InventoryStatics.h"
@@ -229,14 +230,31 @@ bool UInv_GridCrossOperations::PlaceItemFromOtherGrid(UInv_InventoryGrid* Target
 	UInv_GridItemPlacement::AddItemAtIndex(TargetGrid, Item, GridIndex, bIsStackable, StackAmount);
 	UInv_GridItemPlacement::UpdateGridSlots(TargetGrid, Item, GridIndex, bIsStackable, StackAmount);
 
+	// If item was previously equipped and is now placed in inventory, trigger unequipping
+	bool bWasPreviouslyEquipped = HoverItem->WasPreviouslyEquipped();
+	if (bWasPreviouslyEquipped)
+	{
+		// Find the spatial inventory widget to call the unequip method
+		if (UInv_SpatialInventory* SpatialInventory = Cast<UInv_SpatialInventory>(UInv_InventoryStatics::GetInventoryWidget(TargetGrid->GetOwningPlayer())))
+		{
+			SpatialInventory->OnItemPlacedInInventory(Item);
+		}
+	}
+
 	// Remove the item from its original position now that it's successfully placed
+	// BUT NOT if the item was previously equipped - equipped items don't have an inventory position to remove from
 	UInv_InventoryGrid* OriginalGrid = HoverItem->GetOwnerGrid();
 	int32 OriginalIndex = HoverItem->GetPreviousGridIndex();
-	if (IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
+	
+	if (!bWasPreviouslyEquipped && IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
 	{
 		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Removing item from original position: Grid=%s, Index=%d"), 
 			*GetNameSafe(OriginalGrid), OriginalIndex);
 		UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, Item, OriginalIndex);
+	}
+	else if (bWasPreviouslyEquipped)
+	{
+		UE_LOG(LogInventory, Warning, TEXT("[CrossGrid] Item was previously equipped - not removing from inventory position"));
 	}
 
 	// Set the target grid's SourceGrid to point to the source grid for future transfers

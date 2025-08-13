@@ -2,6 +2,7 @@
 #include "Widgets/Inventory/Spatial/Inv_InventoryGrid.h"
 #include "Widgets/Inventory/Spatial/Inv_GridInitialization.h"
 #include "Widgets/Inventory/Spatial/Inv_GridItemPlacement.h"
+#include "Widgets/Inventory/Spatial/Inv_SpatialInventory.h"
 #include "Widgets/Inventory/HoverItem/Inv_HoverItem.h"
 #include "Widgets/Inventory/GridSlots/Inv_GridSlot.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -9,6 +10,7 @@
 #include "Items/Fragments/Inv_ItemFragment.h"
 #include "Items/Inv_InventoryItem.h"
 #include "InventoryManagement/Components/Inv_InventoryComponent.h"
+#include "InventoryManagement/Utils/Inv_InventoryStatics.h"
 
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/CanvasPanel.h"
@@ -185,16 +187,7 @@ void UInv_GridHoverManagement::PutHoverItemBack(UInv_InventoryGrid* Grid)
 			SourceGridPtr->AddStacks(Result);
 			ClearHoverItem(HoverGrid);
 			
-			// Force UI refresh of the source grid to ensure visual updates
-			if (SourceGridPtr->CanvasPanel)
-			{
-				SourceGridPtr->CanvasPanel->ForceLayoutPrepass();
-				UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Forced UI refresh on SourceGrid: %s"), *GetNameSafe(SourceGridPtr));
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] No CanvasPanel found on SourceGrid: %s"), *GetNameSafe(SourceGridPtr));
-			}
+			// UI refresh will happen automatically through the widget system
 			
 			UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Successfully returned item to SourceGrid"));
 			return;
@@ -220,16 +213,7 @@ void UInv_GridHoverManagement::PutHoverItemBack(UInv_InventoryGrid* Grid)
 		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Calling AddStacks on HoverGrid"));
 		HoverGrid->AddStacks(Result);
 		
-		// Force UI refresh of the hover grid to ensure visual updates
-		if (HoverGrid->CanvasPanel)
-		{
-			HoverGrid->CanvasPanel->ForceLayoutPrepass();
-			UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Forced UI refresh on HoverGrid: %s"), *GetNameSafe(HoverGrid));
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] No CanvasPanel found on HoverGrid: %s"), *GetNameSafe(HoverGrid));
-		}
+		// UI refresh will happen automatically through the widget system
 		
 		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Successfully returned item to HoverGrid"));
 	}
@@ -276,17 +260,33 @@ void UInv_GridHoverManagement::PutDownOnIndex(UInv_InventoryGrid* Grid, const in
 	int32 OriginalIndex = Grid->HoverItem->GetPreviousGridIndex();
 	bool bIsStackable = Grid->HoverItem->IsStackable();
 	int32 StackCount = Grid->HoverItem->GetStackCount();
+	bool bWasPreviouslyEquipped = Grid->HoverItem->WasPreviouslyEquipped();
 
 	// Add the item to the new position
 	UInv_GridItemPlacement::AddItemAtIndex(Grid, HoverInventoryItem, Index, bIsStackable, StackCount);
 	UInv_GridItemPlacement::UpdateGridSlots(Grid, HoverInventoryItem, Index, bIsStackable, StackCount);
 
 	// Now remove the item from its original position (only if successful placement)
-	if (IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
+	// BUT NOT if the item was previously equipped - equipped items don't have an inventory position to remove from
+	if (!bWasPreviouslyEquipped && IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Removing item from original position: Grid=%s, Index=%d"), 
 			*GetNameSafe(OriginalGrid), OriginalIndex);
 		UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, HoverInventoryItem, OriginalIndex);
+	}
+	else if (bWasPreviouslyEquipped)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Item was previously equipped - not removing from inventory position"));
+	}
+
+	// If item was previously equipped and is now placed in inventory, trigger unequipping
+	if (bWasPreviouslyEquipped)
+	{
+		// Find the spatial inventory widget to call the unequip method
+		if (UInv_SpatialInventory* SpatialInventory = Cast<UInv_SpatialInventory>(UInv_InventoryStatics::GetInventoryWidget(Grid->GetOwningPlayer())))
+		{
+			SpatialInventory->OnItemPlacedInInventory(HoverInventoryItem);
+		}
 	}
 
 	if (UInv_InventoryGrid* HoverGrid = UInv_GridInitialization::GetGridWithHoverItem(Grid)) 

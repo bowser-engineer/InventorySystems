@@ -47,6 +47,12 @@ public:
 	bool IsRecentlyUnequippedItem(UInv_InventoryItem* Item) const;
 	void ClearRecentlyUnequippedItems();
 
+	// Handle unequipping when item is placed in inventory
+	void OnItemPlacedInInventory(UInv_InventoryItem* Item);
+
+	// Check if hover item can be equipped (made public for external access)
+	bool CanEquipHoverItem(UInv_EquippedGridSlot* EquippedGridSlot, const FGameplayTag& EquipmentTypeTag) const;
+
 	// Declare the grids for different inventory sections
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UInv_InventoryGrid> Grid_Backpack;
@@ -101,7 +107,6 @@ private:
 	
 	void SetItemDescriptionSizeAndPosition(UInv_ItemDescription* Description, UCanvasPanel* Canvas) const;
 	void SetEquippedItemDescriptionSizeAndPosition(UInv_ItemDescription* Description, UInv_ItemDescription* EquippedDescription, UCanvasPanel* Canvas) const;
-	bool CanEquipHoverItem(UInv_EquippedGridSlot* EquippedGridSlot, const FGameplayTag& EquipmentTypeTag) const;
 	bool CanEquipHoverItemInSlot(UInv_EquippedGridSlot* EquippedGridSlot, UInv_InventoryItem* ItemToEquip) const;
 	UInv_EquippedGridSlot* FindSlotWithEquippedItem(UInv_InventoryItem* EquippedItem) const;
 	void MakeEquippedSlottedItem(UInv_EquippedSlottedItem* EquippedSlottedItem, UInv_EquippedGridSlot* EquippedGridSlot, UInv_InventoryItem* ItemToEquip);
@@ -112,4 +117,12 @@ private:
 	// Track items that were recently unequipped due to swapping to prevent re-equipping
 	UPROPERTY()
 	TSet<TObjectPtr<UInv_InventoryItem>> RecentlyUnequippedItems;
+
+	// Track the original equipped slot for items that are picked up but not yet unequipped
+	UPROPERTY()
+	TWeakObjectPtr<UInv_EquippedGridSlot> OriginalEquippedSlot;
+
+	// Track the original equipped item that was picked up
+	UPROPERTY()
+	TWeakObjectPtr<UInv_InventoryItem> OriginalEquippedItem;
 };

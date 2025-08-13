@@ -12,6 +12,7 @@
 #include "Items/Fragments/Inv_ItemFragment.h"
 #include "Widgets/Inventory/HoverItem/Inv_HoverItem.h"
 #include "Widgets/Inventory/SlottedItems/Inv_EquippedSlottedItem.h"
+#include "Widgets/Inventory/Spatial/Inv_SpatialInventory.h"
 #include "Components/OverlaySlot.h"
 
 void UInv_EquippedGridSlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -82,7 +83,32 @@ void UInv_EquippedGridSlot::NativeOnMouseLeave(const FPointerEvent& InMouseEvent
 
 FReply UInv_EquippedGridSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	EquippedGridSlotClicked.Broadcast(this, EquipmentTypeTag);
+	// Don't broadcast on mouse down anymore, wait for mouse up
+	return FReply::Handled();
+}
+
+FReply UInv_EquippedGridSlot::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	// Only equip if we have a hover item and it's compatible
+	UInv_HoverItem* HoverItem = UInv_InventoryStatics::GetHoverItem(GetOwningPlayer());
+	if (IsValid(HoverItem))
+	{
+		UInv_InventoryItem* HoverInvItem = HoverItem->GetInventoryItem();
+		if (IsValid(HoverInvItem))
+		{
+			// Check compatibility
+			const FInv_EquipmentFragment* EquipmentFragment = HoverInvItem->GetItemManifest().GetFragmentOfType<FInv_EquipmentFragment>();
+			if (EquipmentFragment && EquipmentFragment->GetEquipmentType().MatchesTag(EquipmentTypeTag))
+			{
+				// Only broadcast if compatible and slot is available for this item
+				UInv_SpatialInventory* SpatialInventory = Cast<UInv_SpatialInventory>(UInv_InventoryStatics::GetInventoryWidget(GetOwningPlayer()));
+				if (SpatialInventory && SpatialInventory->CanEquipHoverItem(this, EquipmentTypeTag))
+				{
+					EquippedGridSlotClicked.Broadcast(this, EquipmentTypeTag);
+				}
+			}
+		}
+	}
 	return FReply::Handled();
 }
 
