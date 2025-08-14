@@ -92,20 +92,14 @@ void UInv_InventoryComponent::Server_AddNewItem_Implementation(UInv_ItemComponen
 	// Set the category first to ensure it's correct before adding to inventory
 	ItemComponent->SetItemCategory(Category);
 
-
-
 	// This just adds the item to the inventory list, which is a fast array.
 	UInv_InventoryItem* NewItem = InventoryList.AddEntry(ItemComponent);
-
 
 	NewItem->SetTotalStackCount(StackCount);
 
 	if (GetOwner()->GetNetMode() == NM_ListenServer || GetOwner()->GetNetMode() == NM_Standalone)
-	{
-
 		// This calls a delegate that will update all the grids that are listening to this inventory component. But we only want to add it to a specific grid.
 		OnItemAdded.Broadcast(NewItem);
-	}
 
 	if (Remainder == 0)
 		ItemComponent->PickedUp();
