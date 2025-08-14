@@ -61,9 +61,6 @@ public:
 	TObjectPtr<UInv_InventoryGrid> Grid_Satchel;
 
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UInv_InventoryGrid> Grid_Locked;
-
-	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UInv_InventoryGrid> Grid_Quiver;
 
 private:

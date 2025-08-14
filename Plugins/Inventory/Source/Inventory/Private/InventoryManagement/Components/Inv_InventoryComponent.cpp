@@ -36,14 +36,14 @@ void UInv_InventoryComponent::TryAddItem(UInv_ItemComponent* ItemComponent)
 	EInv_ItemCategory ItemCategory = UInv_InventoryStatics::GetPreferredItemCategoryFromItemComp(ItemComponent);
 	CategoriesToTry.Add(ItemCategory);
 	
-	// Always add Backpack and Locked as fallbacks if they're not already the preferred category
+	// Always add Backpack as fallback if it's not already the preferred category
 	if (ItemCategory != EInv_ItemCategory::Backpack)
 	{
 		CategoriesToTry.Add(EInv_ItemCategory::Backpack);
 	}
-	if (ItemCategory != EInv_ItemCategory::Locked)
+	if (ItemCategory != EInv_ItemCategory::Satchel)
 	{
-		CategoriesToTry.Add(EInv_ItemCategory::Locked);
+		CategoriesToTry.Add(EInv_ItemCategory::Satchel);
 	}
 
 	FInv_SlotAvailabilityResult Result;
@@ -105,17 +105,12 @@ void UInv_InventoryComponent::Server_AddNewItem_Implementation(UInv_ItemComponen
 
 		// This calls a delegate that will update all the grids that are listening to this inventory component. But we only want to add it to a specific grid.
 		OnItemAdded.Broadcast(NewItem);
-
 	}
 
 	if (Remainder == 0)
-	{
 		ItemComponent->PickedUp();
-	}
 	else if (FInv_StackableFragment* StackableFragment = ItemComponent->GetItemManifestMutable().GetFragmentOfTypeMutable<FInv_StackableFragment>())
-	{
 		StackableFragment->SetStackCount(Remainder);
-	}
 }
 
 // Updated Server_AddStacksToItem to also accept category parameter
@@ -138,29 +133,21 @@ void UInv_InventoryComponent::Server_AddStacksToItem_Implementation(UInv_ItemCom
 
 		// Broadcast the change
 		if (GetOwner()->GetNetMode() == NM_ListenServer || GetOwner()->GetNetMode() == NM_Standalone)
-		{
 			OnStackChange.Broadcast(FInv_SlotAvailabilityResult()); // You may need to construct this properly
-		}
 	}
 
 	if (Remainder == 0)
-	{
 		ItemComponent->PickedUp();
-	}
 	else if (FInv_StackableFragment* StackableFragment = ItemComponent->GetItemManifestMutable().GetFragmentOfTypeMutable<FInv_StackableFragment>())
-	{
 		StackableFragment->SetStackCount(Remainder);
-	}
 }
 
 
 void UInv_InventoryComponent::Client_UpdateItemCategory_Implementation(UInv_InventoryItem* Item, EInv_ItemCategory Category)
 {
-	if (Item)
-	{
-		auto& MutableManifest = Item->GetItemManifestMutable();
-		MutableManifest.SetItemCategory(Category);
-	}
+	if (!Item) return;
+	auto& MutableManifest = Item->GetItemManifestMutable();
+	MutableManifest.SetItemCategory(Category);
 }
 
 void UInv_InventoryComponent::Server_DropItem_Implementation(UInv_InventoryItem* Item, int32 StackCount)
@@ -198,14 +185,11 @@ void UInv_InventoryComponent::SpawnDroppedItem(UInv_InventoryItem* Item, int32 S
 void UInv_InventoryComponent::Server_ConsumeItem_Implementation(UInv_InventoryItem* Item)
 {
 	const int32 NewStackCount = Item->GetTotalStackCount() - 1;
+
 	if (NewStackCount <= 0)
-	{
 		InventoryList.RemoveEntry(Item);
-	}
-	else
-	{
+	else 
 		Item->SetTotalStackCount(NewStackCount);
-	}
 
 	if (FInv_ConsumableFragment* ConsumableFragment = Item->GetItemManifestMutable().GetFragmentOfTypeMutable<FInv_ConsumableFragment>())
 	{
@@ -227,14 +211,10 @@ void UInv_InventoryComponent::Multicast_EquipSlotClicked_Implementation(UInv_Inv
 
 void UInv_InventoryComponent::ToggleInventoryMenu()
 {
-	if (bInventoryMenuOpen)
-	{
-		CloseInventoryMenu();
-	}
-	else
-	{
-		OpenInventoryMenu();
-	}
+	if (bInventoryMenuOpen) 
+		 CloseInventoryMenu();
+	else OpenInventoryMenu();
+
 	OnInventoryMenuToggled.Broadcast(bInventoryMenuOpen);
 }
 

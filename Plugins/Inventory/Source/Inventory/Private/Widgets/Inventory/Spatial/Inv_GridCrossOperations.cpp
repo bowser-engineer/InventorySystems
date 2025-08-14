@@ -384,8 +384,6 @@ bool UInv_GridCrossOperations::HandleCrossGridSwap(UInv_InventoryGrid* SourceGri
 bool UInv_GridCrossOperations::MatchesCategory(const UInv_InventoryGrid* Grid, const UInv_InventoryItem* Item)
 {
 	if (!IsValid(Grid) || !IsValid(Item)) return false;
-	
-
 	return Item->GetItemManifest().GetItemCategory() == Grid->ItemCategory;
 }
 
@@ -393,17 +391,10 @@ bool UInv_GridCrossOperations::MatchesPreferredCategory(const UInv_InventoryGrid
 {
 	if (!IsValid(Grid) || !IsValid(Item)) return false;
 	
-	// Backpack and Locked grids accept any item category
-	if (Grid->ItemCategory == EInv_ItemCategory::Backpack || Grid->ItemCategory == EInv_ItemCategory::Locked) 
-	{
-		return true;
-	}
+	// These grids accept any item category
+	if (Grid->ItemCategory == EInv_ItemCategory::Backpack || Grid->ItemCategory == EInv_ItemCategory::Satchel) return true;
 
-	// Satchel and Quiver grids only accept their specific preferred category
-	// Use the item's PREFERRED category, not the regular item category
-	bool bMatches = Item->GetItemManifest().GetPreferredItemCategory() == Grid->ItemCategory;
-
-	return bMatches;
+	return Item->GetItemManifest().GetPreferredItemCategory() == Grid->ItemCategory;
 }
 
 bool UInv_GridCrossOperations::AreItemsStackable(const UInv_InventoryItem* Item1, const UInv_InventoryItem* Item2)

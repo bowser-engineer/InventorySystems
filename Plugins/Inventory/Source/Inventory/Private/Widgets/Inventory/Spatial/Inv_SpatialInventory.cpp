@@ -31,7 +31,6 @@ void UInv_SpatialInventory::NativeOnInitialized()
 
 	Grid_Backpack->SetOwningCanvas(CanvasPanel);
 	Grid_Satchel->SetOwningCanvas(CanvasPanel);
-	Grid_Locked->SetOwningCanvas(CanvasPanel);
 
 	WidgetTree->ForEachWidget([this](UWidget* Widget)
 	{
@@ -120,7 +119,6 @@ void UInv_SpatialInventory::EquippedGridSlotClicked(UInv_EquippedGridSlot* Equip
 	{
 		// Fallback: clear from any grid that has a hover item
 		if (Grid_Backpack->HasHoverItem()) Grid_Backpack->ClearHoverItem();
-		else if (Grid_Locked->HasHoverItem()) Grid_Locked->ClearHoverItem();
 		else if (Grid_Satchel->HasHoverItem()) Grid_Satchel->ClearHoverItem();
 		else if (Grid_Quiver->HasHoverItem()) Grid_Quiver->ClearHoverItem();
 	}
@@ -353,8 +351,6 @@ FInv_SlotAvailabilityResult UInv_SpatialInventory::HasRoomForItem(UInv_ItemCompo
 	{
 		case EInv_ItemCategory::Backpack:
 			return Grid_Backpack->HasRoomForItem(ItemComponent);
-		case EInv_ItemCategory::Locked:
-			return Grid_Locked->HasRoomForItem(ItemComponent);
 		case EInv_ItemCategory::Satchel:
 			return Grid_Satchel->HasRoomForItem(ItemComponent);
 		case EInv_ItemCategory::Quiver:
@@ -403,7 +399,6 @@ bool UInv_SpatialInventory::HasHoverItem() const
 {
 	if (Grid_Backpack->HasHoverItem()) return true;
 	if (Grid_Satchel->HasHoverItem()) return true;
-	if (Grid_Locked->HasHoverItem()) return true;
 	if(Grid_Quiver->HasHoverItem()) return true;
 	return false;
 }
@@ -412,7 +407,6 @@ UInv_HoverItem* UInv_SpatialInventory::GetHoverItem() const
 {
 	if (Grid_Backpack->HasHoverItem()) return Grid_Backpack->GetHoverItem();
 	if (Grid_Satchel->HasHoverItem()) return Grid_Satchel->GetHoverItem();
-	if (Grid_Locked->HasHoverItem()) return Grid_Locked->GetHoverItem();
 	if (Grid_Quiver->HasHoverItem()) return Grid_Quiver->GetHoverItem();
 	return nullptr;
 }
