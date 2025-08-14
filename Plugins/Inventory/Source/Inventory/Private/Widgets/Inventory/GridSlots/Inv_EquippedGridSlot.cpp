@@ -23,13 +23,11 @@ void UInv_EquippedGridSlot::NativeOnMouseEnter(const FGeometry& InGeometry, cons
 {
 	if (!IsAvailable()) 
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UInv_EquippedGridSlot::NativeOnMouseEnter called on an unavailable slot!"));
 		return;
 	}
 	UInv_HoverItem* HoverItem = UInv_InventoryStatics::GetHoverItem(GetOwningPlayer());
 	if (!IsValid(HoverItem))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UInv_EquippedGridSlot::NativeOnMouseEnter called on an Invalid HoverItem!"));
 		return;
 	}
 
@@ -53,7 +51,6 @@ void UInv_EquippedGridSlot::NativeOnMouseEnter(const FGeometry& InGeometry, cons
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UInv_EquippedGridSlot::NativeOnMouseEnter called on a HoverItem with an incompatible Equipment Type Tag!"));
 	}
 }
 
@@ -107,7 +104,6 @@ FReply UInv_EquippedGridSlot::NativeOnMouseButtonUp(const FGeometry& InGeometry,
 	const FInv_EquipmentFragment* EquipmentFragment = HoverInvItem->GetItemManifest().GetFragmentOfType<FInv_EquipmentFragment>();
 	if (!EquipmentFragment || !EquipmentFragment->GetEquipmentType().MatchesTag(EquipmentTypeTag))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Incompatible Equipment Type Tag!"));
 		UInv_InventoryStatics::ClearHoverItem(Cast<UInv_InventoryGrid>(this));
 		return FReply::Handled();
 	}
@@ -121,7 +117,6 @@ FReply UInv_EquippedGridSlot::NativeOnMouseButtonUp(const FGeometry& InGeometry,
 	else
 	{
 		// Replace with swap logic
-		UE_LOG(LogTemp, Warning, TEXT("HoverItem cannot be equipped in this slot! We Should Implment Equipment swap logic here"));
 		UInv_InventoryStatics::ClearHoverItem(Cast<UInv_InventoryGrid>(this));
 	}
 

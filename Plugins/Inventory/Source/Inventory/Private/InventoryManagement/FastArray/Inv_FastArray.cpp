@@ -50,8 +50,6 @@ UInv_InventoryItem* FInv_InventoryFastArray::AddEntry(UInv_ItemComponent* ItemCo
 
 	FInv_InventoryEntry& NewEntry = Entries.AddDefaulted_GetRef();
 
-	// Check if the item's manifest is correct. We should see the item's category.
-	UE_LOG(LogTemp, Warning, TEXT("Attempting to add Item Component Category %s"), *UEnum::GetValueAsString(UInv_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent)));
 
 	NewEntry.Item = ItemComponent->GetItemManifest().Manifest(OwningActor);
 

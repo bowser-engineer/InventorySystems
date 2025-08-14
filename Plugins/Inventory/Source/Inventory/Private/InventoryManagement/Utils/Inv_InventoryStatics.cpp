@@ -82,7 +82,6 @@ void UInv_InventoryStatics::ClearHoverItem(const UInv_InventoryGrid* Grid) {
 	{
 		if (UInv_HoverItem* HoverItem = GridWithHoverItem->GetHoverItem())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[SpatialInventory] Mouse released outside grid - clearing hover item"));
 			UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
 		}
 	}

@@ -65,7 +65,6 @@ void UInv_SpatialInventory::EquippedGridSlotClicked(UInv_EquippedGridSlot* Equip
 	if (OriginalEquippedSlot.IsValid() && OriginalEquippedItem.IsValid() && 
 		HoverItem->GetInventoryItem() == OriginalEquippedItem.Get() && EquippedGridSlot == OriginalEquippedSlot.Get())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[EquippedGridSlotClicked] Item %s placed back on original slot - no need to re-equip"), *HoverItem->GetInventoryItem()->GetName());
 		OriginalEquippedSlot.Reset();
 		OriginalEquippedItem.Reset();
 	}
@@ -85,7 +84,6 @@ void UInv_SpatialInventory::EquippedGridSlotClicked(UInv_EquippedGridSlot* Equip
 	if (bWasPreviouslyEquipped)
 	{
 		// Item was previously equipped - remove it from original equipment slot
-		UE_LOG(LogTemp, Warning, TEXT("[EquippedGridSlotClicked] Removing item %s from original equipped slot"), *OriginalEquippedItem->GetName());
 		
 		// Find and remove the equipped slotted item from the original slot
 		if (UInv_EquippedSlottedItem* OldEquippedSlottedItem = OriginalEquippedSlot->GetEquippedSlottedItem())
@@ -107,8 +105,6 @@ void UInv_SpatialInventory::EquippedGridSlotClicked(UInv_EquippedGridSlot* Equip
 			int32 PreviousIndex = HoverItem->GetPreviousGridIndex();
 			if (HoverItemOwnerGrid->GridSlots.IsValidIndex(PreviousIndex))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[EquippedGridSlotClicked] Removing equipped item %s from inventory at index %d"), 
-					*HoverItem->GetInventoryItem()->GetName(), PreviousIndex);
 				UInv_GridItemPlacement::RemoveItemFromGrid(HoverItemOwnerGrid, HoverItem->GetInventoryItem(), PreviousIndex);
 			}
 		}
@@ -195,8 +191,6 @@ FReply UInv_SpatialInventory::NativeOnMouseButtonUp(const FGeometry& MyGeometry,
 	// Check if we have any hover items that need to be cleared
 	bool bHasAnyHoverItem = HasHoverItem();
 	
-	UE_LOG(LogInventory, Warning, TEXT("[SpatialInventory] Mouse released - HasHoverItem: %s"), 
-		bHasAnyHoverItem ? TEXT("TRUE") : TEXT("FALSE"));
 	
 	if (bHasAnyHoverItem)
 	{
@@ -208,7 +202,6 @@ FReply UInv_SpatialInventory::NativeOnMouseButtonUp(const FGeometry& MyGeometry,
 			// Only clear if there's still a hover item after child widgets had a chance to handle it
 			if (HasHoverItem())
 			{
-				UE_LOG(LogInventory, Warning, TEXT("[SpatialInventory] Delayed clear - releasing hover item outside grid"));
 				UInv_InventoryStatics::ClearHoverItem(Cast<UInv_InventoryGrid>(this));
 			}
 		});
@@ -367,7 +360,6 @@ FInv_SlotAvailabilityResult UInv_SpatialInventory::HasRoomForItem(UInv_ItemCompo
 		case EInv_ItemCategory::Quiver:
 			return Grid_Quiver->HasRoomForItem(ItemComponent);
 		default:
-			UE_LOG(LogInventory, Error, TEXT("ItemComponent doesn't have a valid Item Category."))
 			return FInv_SlotAvailabilityResult();
 	}
 }
@@ -491,7 +483,6 @@ void UInv_SpatialInventory::AddRecentlyUnequippedItem(UInv_InventoryItem* Item)
 	if (IsValid(Item))
 	{
 		RecentlyUnequippedItems.Add(Item);
-		UE_LOG(LogTemp, Warning, TEXT("[AddRecentlyUnequippedItem] Added item %s to recently unequipped list"), *Item->GetName());
 	}
 }
 
@@ -502,7 +493,6 @@ bool UInv_SpatialInventory::IsRecentlyUnequippedItem(UInv_InventoryItem* Item) c
 
 void UInv_SpatialInventory::ClearRecentlyUnequippedItems()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[ClearRecentlyUnequippedItems] Clearing recently unequipped items list"));
 	RecentlyUnequippedItems.Empty();
 }
 
@@ -513,7 +503,6 @@ void UInv_SpatialInventory::OnItemPlacedInInventory(UInv_InventoryItem* Item)
 	// Check if this item was previously equipped and should now be unequipped
 	if (OriginalEquippedItem.IsValid() && Item == OriginalEquippedItem.Get())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[OnItemPlacedInInventory] Unequipping item that was placed in inventory: %s"), *Item->GetName());
 		
 		// Remove the equipped item from its UI slot since it's now in inventory
 		if (OriginalEquippedSlot.IsValid())

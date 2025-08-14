@@ -6,6 +6,7 @@
       "Bash(cmd:*)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "defaultMode": "acceptEdits"
   }
 }

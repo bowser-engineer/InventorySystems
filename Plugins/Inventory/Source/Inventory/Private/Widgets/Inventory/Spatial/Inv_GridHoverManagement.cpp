@@ -63,8 +63,6 @@ void UInv_GridHoverManagement::PickUp(UInv_InventoryGrid* Grid, UInv_InventoryIt
 {
 	if (!IsValid(Grid) || !IsValid(ClickedInventoryItem)) return;
 
-	UE_LOG(LogTemp, Warning, TEXT("[PickUp] DEBUG: Grid=%s, GridIndex=%d, Item=%s"), 
-		*GetNameSafe(Grid), GridIndex, *GetNameSafe(ClickedInventoryItem));
 
 	AssignHoverItem(Grid, ClickedInventoryItem, GridIndex, GridIndex);
 	// Don't remove the item from grid yet - only remove it when successfully placed elsewhere
@@ -73,15 +71,12 @@ void UInv_GridHoverManagement::PickUp(UInv_InventoryGrid* Grid, UInv_InventoryIt
 	if (!Grid->SourceGrid.IsValid())
 	{
 		Grid->SourceGrid = Grid;
-		UE_LOG(LogTemp, Warning, TEXT("[PickUp] Set SourceGrid to self: %s"), *GetNameSafe(Grid));
 	}
 	else if (Grid->SourceGrid.Get() != Grid)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PickUp] Preserving existing SourceGrid: %s"), *GetNameSafe(Grid->SourceGrid.Get()));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PickUp] SourceGrid already points to self: %s"), *GetNameSafe(Grid));
 	}
 }
 
@@ -99,9 +94,6 @@ void UInv_GridHoverManagement::ClearHoverItem(UInv_InventoryGrid* Grid)
 	// Safety check: only clear if this grid actually owns the hover item
 	if (Grid->HoverItem->GetOwnerGrid() != Grid)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[HoverManagement] Attempted to clear hover item from non-owning grid %s. Owner: %s"),
-			*GetNameSafe(Grid), 
-			*GetNameSafe(Grid->HoverItem->GetOwnerGrid()));
 		// Just clear the reference, don't destroy the hover item
 		Grid->HoverItem = nullptr;
 		return;
@@ -137,29 +129,23 @@ void UInv_GridHoverManagement::PutHoverItemBack(UInv_InventoryGrid* Grid)
 	CallCount++;
 	LastCallTime = CurrentTime;
 	
-	UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Called for Grid: %s (Call #%d at time %.3f)"), 
-		*GetNameSafe(Grid), CallCount, CurrentTime);
 	
 	// Guard against mass cleanup calls - only allow if there's actually a hover item somewhere
 	UInv_InventoryGrid* ActualHoverGrid = UInv_GridInitialization::GetGridWithHoverItem(Grid);
 	if (!ActualHoverGrid)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] GUARD: No hover item found anywhere - ignoring cleanup call for %s"), *GetNameSafe(Grid));
 		return;
 	}
 	
 	// Additional guard: only proceed if this grid is the one with the hover item OR if it's being called appropriately
 	if (ActualHoverGrid != Grid && CallCount > 1)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] GUARD: Mass cleanup detected - Grid %s doesn't have hover item (belongs to %s), ignoring call #%d"), 
-			*GetNameSafe(Grid), *GetNameSafe(ActualHoverGrid), CallCount);
 		return;
 	}
 	
 	UInv_InventoryGrid* HoverGrid = UInv_GridInitialization::GetGridWithHoverItem(Grid);
 	if (!IsValid(HoverGrid) || !IsValid(HoverGrid->HoverItem))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] No valid hover grid or hover item found"));
 		return;
 	}
 
@@ -174,53 +160,43 @@ void UInv_GridHoverManagement::PutHoverItemBack(UInv_InventoryGrid* Grid)
 	if (HoverGrid->SourceGrid.IsValid() && HoverGrid->SourceGrid.Get() != HoverGrid)
 	{
 		UInv_InventoryGrid* SourceGridPtr = HoverGrid->SourceGrid.Get();
-		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Trying to return item to SourceGrid: %s"), *GetNameSafe(SourceGridPtr));
 		
 		FInv_SlotAvailabilityResult Result = UInv_GridItemPlacement::HasRoomForItem(SourceGridPtr, LocalHoverItem->GetInventoryItem(),
 			LocalHoverItem->GetStackCount());
 
-		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] SourceGrid HasRoomForItem result: TotalRoomToFill=%d"), Result.TotalRoomToFill);
 
 		if (Result.TotalRoomToFill > 0)
 		{
 			Result.Item = LocalHoverItem->GetInventoryItem();
-			UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Calling AddStacks on SourceGrid"));
 			SourceGridPtr->AddStacks(Result);
 			ClearHoverItem(HoverGrid);
 			
 			// UI refresh will happen automatically through the widget system
 			
-			UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Successfully returned item to SourceGrid"));
 			return;
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] SourceGrid has no room, trying HoverGrid"));
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] No valid SourceGrid, using HoverGrid"));
 	}
 
 	FInv_SlotAvailabilityResult Result = UInv_GridItemPlacement::HasRoomForItem(HoverGrid, LocalHoverItem->GetInventoryItem(),
 		LocalHoverItem->GetStackCount());
 	Result.Item = LocalHoverItem->GetInventoryItem();
 
-	UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] HoverGrid HasRoomForItem result: TotalRoomToFill=%d"), Result.TotalRoomToFill);
 	
 	if (Result.TotalRoomToFill > 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Calling AddStacks on HoverGrid"));
 		HoverGrid->AddStacks(Result);
 		
 		// UI refresh will happen automatically through the widget system
 		
-		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] Successfully returned item to HoverGrid"));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PutHoverItemBack] ERROR: No room in any grid! Item will be lost!"));
 	}
 	
 	ClearHoverItem(HoverGrid);
@@ -263,7 +239,6 @@ void UInv_GridHoverManagement::PutDownOnIndex(UInv_InventoryGrid* Grid, const in
 {
 	if (!IsValid(Grid) || !IsValid(Grid->HoverItem)) return;
 
-	UE_LOG(LogTemp, Warning, TEXT("Putting down item at index %d"), Index);
 
 	// Store hover item info before clearing
 	UInv_InventoryItem* HoverInventoryItem = Grid->HoverItem->GetInventoryItem();
@@ -283,13 +258,10 @@ void UInv_GridHoverManagement::PutDownOnIndex(UInv_InventoryGrid* Grid, const in
 	// AND NOT if this is a split operation - the original stack should remain in place
 	if (!bWasPreviouslyEquipped && !bIsFromSplitOperation && IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Removing item from original position: Grid=%s, Index=%d"), 
-			*GetNameSafe(OriginalGrid), OriginalIndex);
 		UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, HoverInventoryItem, OriginalIndex);
 	}
 	else if (bIsFromSplitOperation)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Split operation - keeping original stack in place"));
 	}
 	
 	// Clear the split operation flag since the item has now been placed - future operations should treat it normally
@@ -297,11 +269,9 @@ void UInv_GridHoverManagement::PutDownOnIndex(UInv_InventoryGrid* Grid, const in
 	if (bIsFromSplitOperation && IsValid(Grid->HoverItem))
 	{
 		Grid->HoverItem->SetIsFromSplitOperation(false);
-		UE_LOG(LogTemp, Warning, TEXT("Cleared split operation flag after placement"));
 	}
 	else if (bWasPreviouslyEquipped)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Item was previously equipped - not removing from inventory position"));
 	}
 
 	// If item was previously equipped and is now placed in inventory, trigger unequipping

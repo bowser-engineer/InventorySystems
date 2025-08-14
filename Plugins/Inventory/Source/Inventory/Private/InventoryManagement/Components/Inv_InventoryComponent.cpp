@@ -73,23 +73,15 @@ void UInv_InventoryComponent::TryAddItem(UInv_ItemComponent* ItemComponent)
 		return;
 	}
 
-	// DEBUG: Log the result details
-	UE_LOG(LogTemp, Warning, TEXT("TryAddItem Debug - Result.Item.IsValid(): %s, Result.bStackable: %s, Result.TotalRoomToFill: %d, ValidCategory: %s"),
-		Result.Item.IsValid() ? TEXT("true") : TEXT("false"),
-		Result.bStackable ? TEXT("true") : TEXT("false"),
-		Result.TotalRoomToFill,
-		*UEnum::GetValueAsString(ValidCategory));
 
 	// Pass the ValidCategory directly to the server functions
 	if (Result.Item.IsValid() && Result.bStackable)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Taking STACKABLE path - adding to existing item"));
 		OnStackChange.Broadcast(Result);
 		Server_AddStacksToItem(ItemComponent, ValidCategory, Result.TotalRoomToFill, Result.Remainder);
 	}
 	else if (Result.TotalRoomToFill > 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Taking NEW ITEM path - creating new stack"));
 		Server_AddNewItem(ItemComponent, ValidCategory, Result.bStackable ? Result.TotalRoomToFill : 0, Result.Remainder);
 	}
 }
@@ -100,34 +92,20 @@ void UInv_InventoryComponent::Server_AddNewItem_Implementation(UInv_ItemComponen
 	// Set the category first to ensure it's correct before adding to inventory
 	ItemComponent->SetItemCategory(Category);
 
-	// Log the category we're trying to set
-	UE_LOG(LogTemp, Warning, TEXT("Setting ItemComponent category to: %s"), *UEnum::GetValueAsString(Category));
 
-	// Verify ItemComponent has the correct category after setting
-	UE_LOG(LogTemp, Warning, TEXT("ItemComponent category after setting: %s"),
-		*UEnum::GetValueAsString(UInv_InventoryStatics::GetItemCategoryFromItemComp(ItemComponent)));
 
 	// This just adds the item to the inventory list, which is a fast array.
 	UInv_InventoryItem* NewItem = InventoryList.AddEntry(ItemComponent);
 
-	// Verify the NewItem has the correct category
-	UE_LOG(LogTemp, Warning, TEXT("NewItem category after AddEntry: %s"),
-		*UEnum::GetValueAsString(NewItem->GetItemManifest().GetItemCategory()));
 
 	NewItem->SetTotalStackCount(StackCount);
 
 	if (GetOwner()->GetNetMode() == NM_ListenServer || GetOwner()->GetNetMode() == NM_Standalone)
 	{
-		// Log right before broadcasting
-		UE_LOG(LogTemp, Warning, TEXT("About to broadcast NewItem with category: %s"),
-			*UEnum::GetValueAsString(NewItem->GetItemManifest().GetItemCategory()));
 
 		// This calls a delegate that will update all the grids that are listening to this inventory component. But we only want to add it to a specific grid.
 		OnItemAdded.Broadcast(NewItem);
 
-		// Log right after broadcasting
-		UE_LOG(LogTemp, Warning, TEXT("After broadcast, NewItem category is: %s"),
-			*UEnum::GetValueAsString(NewItem->GetItemManifest().GetItemCategory()));
 	}
 
 	if (Remainder == 0)
