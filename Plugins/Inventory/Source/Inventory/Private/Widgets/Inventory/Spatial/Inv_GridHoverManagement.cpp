@@ -243,7 +243,17 @@ void UInv_GridHoverManagement::DropItem(UInv_InventoryGrid* Grid)
 		return;
 	}
 
+	// Store the previous grid index and owner grid before clearing hover item
+	int32 PreviousGridIndex = ActualHoverItem->GetPreviousGridIndex();
+	UInv_InventoryGrid* OwnerGrid = ActualHoverItem->GetOwnerGrid();
+
 	Grid->InventoryComponent->Server_DropItem(Grid->HoverItem->GetInventoryItem(), Grid->HoverItem->GetStackCount());
+
+	// Remove the item from the grid visually after dropping
+	if (IsValid(OwnerGrid) && OwnerGrid->GridSlots.IsValidIndex(PreviousGridIndex))
+	{
+		UInv_GridItemPlacement::RemoveItemFromGrid(OwnerGrid, InventoryItem, PreviousGridIndex);
+	}
 
 	ClearHoverItem(GridWithHoverItem);
 	ShowCursor(Grid);
