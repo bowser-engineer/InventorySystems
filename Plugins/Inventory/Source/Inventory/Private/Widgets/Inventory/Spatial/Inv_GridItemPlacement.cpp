@@ -12,6 +12,18 @@
 #include "Items/Inv_InventoryItem.h"
 #include "Items/Components/Inv_ItemComponent.h"
 
+FInv_SlotAvailabilityResult UInv_GridItemPlacement::HasRoomForItem(const UInv_InventoryGrid* Grid, const UInv_ItemComponent* ItemComponent)
+{
+	if (!IsValid(Grid) || !IsValid(ItemComponent)) return FInv_SlotAvailabilityResult{};
+	return HasRoomForItem(Grid, ItemComponent->GetItemManifest());
+}
+
+FInv_SlotAvailabilityResult UInv_GridItemPlacement::HasRoomForItem(const UInv_InventoryGrid* Grid, const UInv_InventoryItem* Item, const int32 StackAmountOverride)
+{
+	if (!IsValid(Grid) || !IsValid(Item)) return FInv_SlotAvailabilityResult{};
+	return HasRoomForItem(Grid, Item->GetItemManifest(), StackAmountOverride);
+}
+
 FInv_SlotAvailabilityResult UInv_GridItemPlacement::HasRoomForItem(const UInv_InventoryGrid* Grid, const FInv_ItemManifest& Manifest, const int32 StackAmountOverride)
 {
 	if (!IsValid(Grid)) return FInv_SlotAvailabilityResult{};
@@ -77,9 +89,13 @@ bool UInv_GridItemPlacement::HasRoomAtIndex(const UInv_InventoryGrid* Grid, cons
 	UInv_InventoryStatics::ForEach2D(Grid->GridSlots, GridSlot->GetIndex(), Dimensions, Grid->Columns, [&](const UInv_GridSlot* SubGridSlot)
 	{
 		if (CheckSlotConstraints(Grid, GridSlot, SubGridSlot, CheckedIndices, OutTentativelyClaimed, ItemType, MaxStackSize))
+		{
 			OutTentativelyClaimed.Add(SubGridSlot->GetIndex());
+		}
 		else
+		{
 			bHasRoomAtIndex = false;
+		}
 	});
 
 	return bHasRoomAtIndex;
@@ -188,6 +204,26 @@ FIntPoint UInv_GridItemPlacement::GetItemDimensions(const FInv_ItemManifest& Man
 	return GridFragment ? GridFragment->GetGridSize() : FIntPoint(1, 1);
 }
 
+bool UInv_GridItemPlacement::HasValidItem(const UInv_GridSlot* GridSlot)
+{
+	return IsValid(GridSlot) && GridSlot->GetInventoryItem().IsValid();
+}
+
+bool UInv_GridItemPlacement::IsUpperLeftSlot(const UInv_GridSlot* GridSlot, const UInv_GridSlot* SubGridSlot)
+{
+	return IsValid(GridSlot) && IsValid(SubGridSlot) && SubGridSlot->GetUpperLeftIndex() == GridSlot->GetIndex();
+}
+
+bool UInv_GridItemPlacement::DoesItemTypeMatch(const UInv_InventoryItem* SubItem, const FGameplayTag& ItemType)
+{
+	return IsValid(SubItem) && SubItem->GetItemManifest().GetItemType().MatchesTagExact(ItemType);
+}
+
+bool UInv_GridItemPlacement::IsIndexClaimed(const TSet<int32>& CheckedIndices, const int32 Index)
+{
+	return CheckedIndices.Contains(Index);
+}
+
 int32 UInv_GridItemPlacement::DetermineFillAmountForSlot(const UInv_InventoryGrid* Grid, const bool bStackable, 
 														const int32 MaxStackSize, const int32 AmountToFill, 
 														const UInv_GridSlot* GridSlot)
@@ -268,36 +304,4 @@ void UInv_GridItemPlacement::SetSlottedItemImage(const UInv_InventoryGrid* Grid,
 	Brush.DrawAs = ESlateBrushDrawType::Image;
 	Brush.ImageSize = GetDrawSize(Grid, GridFragment);
 	SlottedItem->SetImageBrush(Brush);
-}
-
-FInv_SlotAvailabilityResult UInv_GridItemPlacement::HasRoomForItem(const UInv_InventoryGrid* Grid, const UInv_ItemComponent* ItemComponent)
-{
-	if (!IsValid(Grid) || !IsValid(ItemComponent)) return FInv_SlotAvailabilityResult{};
-	return HasRoomForItem(Grid, ItemComponent->GetItemManifest());
-}
-
-FInv_SlotAvailabilityResult UInv_GridItemPlacement::HasRoomForItem(const UInv_InventoryGrid* Grid, const UInv_InventoryItem* Item, const int32 StackAmountOverride)
-{
-	if (!IsValid(Grid) || !IsValid(Item)) return FInv_SlotAvailabilityResult{};
-	return HasRoomForItem(Grid, Item->GetItemManifest(), StackAmountOverride);
-}
-
-bool UInv_GridItemPlacement::HasValidItem(const UInv_GridSlot* GridSlot)
-{
-	return IsValid(GridSlot) && GridSlot->GetInventoryItem().IsValid();
-}
-
-bool UInv_GridItemPlacement::IsUpperLeftSlot(const UInv_GridSlot* GridSlot, const UInv_GridSlot* SubGridSlot)
-{
-	return IsValid(GridSlot) && IsValid(SubGridSlot) && SubGridSlot->GetUpperLeftIndex() == GridSlot->GetIndex();
-}
-
-bool UInv_GridItemPlacement::DoesItemTypeMatch(const UInv_InventoryItem* SubItem, const FGameplayTag& ItemType)
-{
-	return IsValid(SubItem) && SubItem->GetItemManifest().GetItemType().MatchesTagExact(ItemType);
-}
-
-bool UInv_GridItemPlacement::IsIndexClaimed(const TSet<int32>& CheckedIndices, const int32 Index)
-{
-	return CheckedIndices.Contains(Index);
 }

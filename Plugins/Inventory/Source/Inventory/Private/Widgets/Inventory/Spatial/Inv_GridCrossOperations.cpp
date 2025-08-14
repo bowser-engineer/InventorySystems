@@ -35,149 +35,188 @@ bool UInv_GridCrossOperations::TransferFromGrid(UInv_InventoryGrid* TargetGrid, 
 	return true;
 }
 
-bool UInv_GridCrossOperations::HandleCrossGridTransfer(
-	UInv_InventoryGrid* TargetGrid,
-	UInv_InventoryGrid* SourceGrid,
-	UInv_HoverItem* HoverItem,
-	int32 ClickedGridIndex
-) {
-	// Basic validity checks
-	if (!IsValid(TargetGrid) || !IsValid(SourceGrid) || !IsValid(HoverItem))
-		return false;
+bool UInv_GridCrossOperations::HandleCrossGridTransfer(UInv_InventoryGrid* TargetGrid, UInv_InventoryGrid* SourceGrid, 
+													  UInv_HoverItem* HoverItem, int32 ClickedGridIndex)
+{
+	if (!IsValid(TargetGrid) || !IsValid(SourceGrid) || !IsValid(HoverItem)) return false;
+
 
 	UInv_InventoryItem* Item = HoverItem->GetInventoryItem();
 	int32 StackAmount = HoverItem->GetStackCount();
 
 	if (!CanAcceptFromGrid(TargetGrid, SourceGrid, Item, StackAmount))
-		return false;
-
-	if (!TargetGrid->GridSlots.IsValidIndex(ClickedGridIndex))
-		return false;
-
-	UInv_GridSlot* TargetSlot = TargetGrid->GridSlots[ClickedGridIndex];
-	if (!TargetSlot)
-		return false;
-
-	// If slot has an item
-	if (TargetSlot->GetInventoryItem().IsValid()) {
-		UInv_InventoryItem* TargetItem = TargetSlot->GetInventoryItem().Get();
-
-		if (AreItemsStackable(Item, TargetItem))
-			return HandleCrossGridStacking(TargetGrid, HoverItem, ClickedGridIndex);
-
-		if (CanAcceptFromGrid(SourceGrid, TargetGrid, TargetItem))
-			return HandleCrossGridSwap(SourceGrid, TargetGrid, HoverItem, TargetItem, ClickedGridIndex);
-
-		// Slot is occupied, but we can't stack or swap
+	{
 		return false;
 	}
 
-	// Slot is empty, place the item
-	return PlaceItemFromOtherGrid(TargetGrid, SourceGrid, HoverItem, ClickedGridIndex);
-}
+	if (TargetGrid->GridSlots.IsValidIndex(ClickedGridIndex))
+	{
+		UInv_GridSlot* TargetSlot = TargetGrid->GridSlots[ClickedGridIndex];
 
+
+		if (TargetSlot->GetInventoryItem().IsValid())
+		{
+			UInv_InventoryItem* TargetItem = TargetSlot->GetInventoryItem().Get();
+
+
+			if (AreItemsStackable(Item, TargetItem)) 
+			{
+				return HandleCrossGridStacking(TargetGrid, HoverItem, ClickedGridIndex);
+			}
+			else
+			{
+				if (CanAcceptFromGrid(SourceGrid, TargetGrid, TargetItem))
+				{
+					return HandleCrossGridSwap(SourceGrid, TargetGrid, HoverItem, TargetItem, ClickedGridIndex);
+				}
+			}
+		}
+		else
+		{
+			return PlaceItemFromOtherGrid(TargetGrid, SourceGrid, HoverItem, ClickedGridIndex);
+		}
+	}
+
+	return false;
+}
 
 bool UInv_GridCrossOperations::HandleCrossGridStacking(UInv_InventoryGrid* TargetGrid, UInv_HoverItem* LocalHoverItem, int32 TargetIndex)
 {
-	if (!IsValid(TargetGrid) || !IsValid(LocalHoverItem))
-		return false;
+	if (!IsValid(TargetGrid) || !IsValid(LocalHoverItem)) return false;
 
 	UInv_InventoryItem* Item = LocalHoverItem->GetInventoryItem();
-	if (!IsValid(Item) || !Item->IsStackable())
-		return false;
+	if (!IsValid(Item) || !Item->IsStackable()) return false;
 
-	if (!MatchesPreferredCategory(TargetGrid, Item))
-		return false;
+	// Check if the target grid accepts this item category (same validation as non-stackable items)
+	if (!MatchesPreferredCategory(TargetGrid, Item)) return false;
 
-	const FInv_StackableFragment* StackableFragment = Item->GetItemManifest().GetFragmentOfType<FInv_StackableFragment>();
-	if (!StackableFragment)
-		return false;
-
-	const int32 MaxStackSize = StackableFragment->GetMaxStackSize();
-	const int32 CurrentStack = TargetGrid->GridSlots[TargetIndex]->GetStackCount();
-	const int32 RoomInSlot = MaxStackSize - CurrentStack;
-	if (RoomInSlot <= 0)
-		return false;
-
-	const int32 StackAmount = LocalHoverItem->GetStackCount();
-	const int32 AmountToTransfer = FMath::Min(StackAmount, RoomInSlot);
-	const int32 NewStackCount = CurrentStack + AmountToTransfer;
-
-	TargetGrid->GridSlots[TargetIndex]->SetStackCount(NewStackCount);
-	if (TargetGrid->SlottedItems.Contains(TargetIndex))
-		TargetGrid->SlottedItems[TargetIndex]->UpdateStackCount(NewStackCount);
-
-	const int32 Remainder = StackAmount - AmountToTransfer;
-	bool bIsFromSplitOperation = LocalHoverItem->IsFromSplitOperation();
-
-	if (Remainder > 0)
+	if (const FInv_StackableFragment* StackableFragment = Item->GetItemManifest().GetFragmentOfType<FInv_StackableFragment>()) 
 	{
-		LocalHoverItem->UpdateStackCount(Remainder);
-		if (bIsFromSplitOperation)
-			LocalHoverItem->SetIsFromSplitOperation(false);
-		return true;
-	}
+		const int32 MaxStackSize = StackableFragment->GetMaxStackSize();
+		const int32 CurrentStack = TargetGrid->GridSlots[TargetIndex]->GetStackCount();
+		const int32 RoomInSlot = MaxStackSize - CurrentStack;
+		const int32 StackAmount = LocalHoverItem->GetStackCount();
 
-	// Remove original stack if this wasn't a split operation
-	if (!bIsFromSplitOperation)
-	{
-		if (UInv_InventoryGrid* OriginalGrid = LocalHoverItem->GetOwnerGrid())
+		if (RoomInSlot > 0) 
 		{
-			int32 OriginalIndex = LocalHoverItem->GetPreviousGridIndex();
-			if (IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
-				UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, Item, OriginalIndex);
+			const int32 AmountToTransfer = FMath::Min(StackAmount, RoomInSlot);
+			const int32 NewStackCount = CurrentStack + AmountToTransfer;
+
+			TargetGrid->GridSlots[TargetIndex]->SetStackCount(NewStackCount);
+			if (TargetGrid->SlottedItems.Contains(TargetIndex)) 
+			{
+				TargetGrid->SlottedItems[TargetIndex]->UpdateStackCount(NewStackCount);
+			}
+
+			const int32 Remainder = StackAmount - AmountToTransfer;
+			
+			// Store the split operation flag BEFORE potentially clearing it
+			bool bIsFromSplitOperation = LocalHoverItem->IsFromSplitOperation();
+
+			if (Remainder > 0) 
+			{
+				LocalHoverItem->UpdateStackCount(Remainder);
+				// Clear the split operation flag since the item has now been stacked - future operations should treat it normally
+				if (bIsFromSplitOperation)
+				{
+					LocalHoverItem->SetIsFromSplitOperation(false);
+				}
+			}
+			else 
+			{
+				// Remove the item from its original position since the entire stack was transferred
+				// BUT NOT if this is from a split operation - the original stack should remain in place
+				UInv_InventoryGrid* OriginalGrid = LocalHoverItem->GetOwnerGrid();
+				int32 OriginalIndex = LocalHoverItem->GetPreviousGridIndex();
+				
+				if (!bIsFromSplitOperation && IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
+				{
+					UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, Item, OriginalIndex);
+				}
+				
+				// Clear the split operation flag since the entire stack has now been transferred
+				if (bIsFromSplitOperation)
+				{
+					LocalHoverItem->SetIsFromSplitOperation(false);
+				}
+
+				// Set the target grid's SourceGrid to point to the source grid for future transfers
+				if (UInv_InventoryGrid* LocalHoverGrid = LocalHoverItem->GetOwnerGrid())
+				{
+					if (LocalHoverGrid->SourceGrid.IsValid() && LocalHoverGrid->SourceGrid.Get() != LocalHoverGrid)
+					{
+						TargetGrid->SourceGrid = LocalHoverGrid->SourceGrid;
+						}
+					else
+					{
+						TargetGrid->SourceGrid = LocalHoverGrid;
+						}
+				}
+
+				// Clear hover item from the source grid that owns it
+				if (UInv_InventoryGrid* LocalHoverGrid = LocalHoverItem->GetOwnerGrid())
+				{
+					if (LocalHoverGrid->GetHoverItem() == LocalHoverItem)
+					{
+						LocalHoverGrid->ClearHoverItem();
+					}
+				}
+				else
+				{
+					// Fallback: find grid with hover item if owner reference is broken
+					if (UInv_InventoryGrid* OtherHoverGrid = UInv_GridInitialization::GetGridWithHoverItem(TargetGrid))
+					{
+						if (OtherHoverGrid->GetHoverItem() == LocalHoverItem)
+						{
+							OtherHoverGrid->ClearHoverItem();
+						}
+					}
+				}
+			}
+			return true;
 		}
 	}
-	else
-		LocalHoverItem->SetIsFromSplitOperation(false);
 
-	// Set SourceGrid
-	if (UInv_InventoryGrid* LocalHoverGrid = LocalHoverItem->GetOwnerGrid())
-		TargetGrid->SourceGrid = (LocalHoverGrid->SourceGrid.IsValid() && LocalHoverGrid->SourceGrid.Get() != LocalHoverGrid)
-		? LocalHoverGrid->SourceGrid
-		: LocalHoverGrid;
-
-	// Clear hover item from its owning grid or fallback
-	if (UInv_InventoryGrid* LocalHoverGrid = LocalHoverItem->GetOwnerGrid())
-	{
-		if (LocalHoverGrid->GetHoverItem() == LocalHoverItem)
-			LocalHoverGrid->ClearHoverItem();
-	}
-	else if (UInv_InventoryGrid* OtherHoverGrid = UInv_GridInitialization::GetGridWithHoverItem(TargetGrid))
-		if (OtherHoverGrid->GetHoverItem() == LocalHoverItem)
-			OtherHoverGrid->ClearHoverItem();
-
-	return true;
+	return false;
 }
-
 
 bool UInv_GridCrossOperations::PlaceItemFromOtherGrid(UInv_InventoryGrid* TargetGrid, UInv_InventoryGrid* SourceGrid, 
 													 UInv_HoverItem* HoverItem, int32 GridIndex)
 {
-	if (!TargetGrid->GridSlots.IsValidIndex(GridIndex) || !IsValid(HoverItem) || !IsValid(SourceGrid))
+	if (!TargetGrid->GridSlots.IsValidIndex(GridIndex) || !IsValid(HoverItem) || !IsValid(SourceGrid)) 
+	{
 		return false;
+	}
+
 
 	UInv_InventoryItem* Item = HoverItem->GetInventoryItem();
 	int32 StackAmount = HoverItem->GetStackCount();
 	bool bIsStackable = HoverItem->IsStackable();
 
 	const FInv_GridFragment* GridFragment = GetFragment<FInv_GridFragment>(Item, FragmentTags::GridFragment);
-	if (!GridFragment)
+	if (!GridFragment) 
+	{
 		return false;
+	}
 
 	const FIntPoint ItemDimensions = GridFragment->GetGridSize();
 
 	if (!UInv_GridItemPlacement::IsInGridBounds(TargetGrid, GridIndex, ItemDimensions)) 
 	{
-		if (!UInv_GridItemPlacement::IsInGridBounds(TargetGrid, TargetGrid->ItemDropIndex, ItemDimensions)) return false;
+		if (!UInv_GridItemPlacement::IsInGridBounds(TargetGrid, TargetGrid->ItemDropIndex, ItemDimensions)) 
+		{
+			return false;
+		}
 		GridIndex = TargetGrid->ItemDropIndex;
 	}
 
 	bool bAllSlotsFree = true;
 	UInv_InventoryStatics::ForEach2D(TargetGrid->GridSlots, GridIndex, ItemDimensions, TargetGrid->Columns, [&](const UInv_GridSlot* GridSlot) 
 	{
-		if (GridSlot->GetInventoryItem().IsValid())
+		if (GridSlot->GetInventoryItem().IsValid()) 
+		{
 			bAllSlotsFree = false;
+		}
 	});
 
 	if (!bAllSlotsFree) 
@@ -191,9 +230,13 @@ bool UInv_GridCrossOperations::PlaceItemFromOtherGrid(UInv_InventoryGrid* Target
 	// If item was previously equipped and is now placed in inventory, trigger unequipping
 	bool bWasPreviouslyEquipped = HoverItem->WasPreviouslyEquipped();
 	if (bWasPreviouslyEquipped)
+	{
 		// Find the spatial inventory widget to call the unequip method
 		if (UInv_SpatialInventory* SpatialInventory = Cast<UInv_SpatialInventory>(UInv_InventoryStatics::GetInventoryWidget(TargetGrid->GetOwningPlayer())))
+		{
 			SpatialInventory->OnItemPlacedInInventory(Item);
+		}
+	}
 
 	// Remove the item from its original position now that it's successfully placed
 	// BUT NOT if the item was previously equipped - equipped items don't have an inventory position to remove from
@@ -203,33 +246,48 @@ bool UInv_GridCrossOperations::PlaceItemFromOtherGrid(UInv_InventoryGrid* Target
 	bool bIsFromSplitOperation = HoverItem->IsFromSplitOperation();
 	
 	if (!bWasPreviouslyEquipped && !bIsFromSplitOperation && IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
+	{
 		UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, Item, OriginalIndex);
+	}
 	
 	// Clear the split operation flag since the item has now been placed - future operations should treat it normally
 	// (Do this AFTER checking the flag for removal logic)
-	if (bIsFromSplitOperation) HoverItem->SetIsFromSplitOperation(false);
+	if (bIsFromSplitOperation)
+	{
+		HoverItem->SetIsFromSplitOperation(false);
+	}
 
 	// Set the target grid's SourceGrid to point to the source grid for future transfers
 	if (UInv_InventoryGrid* LocalHoverGrid = HoverItem->GetOwnerGrid())
 	{
 		if (LocalHoverGrid->SourceGrid.IsValid() && LocalHoverGrid->SourceGrid.Get() != LocalHoverGrid)
+		{
 			TargetGrid->SourceGrid = LocalHoverGrid->SourceGrid;
+		}
 		else
+		{
 			TargetGrid->SourceGrid = LocalHoverGrid;
+		}
 	}
 
 	// Clear hover item from the source grid that owns it
 	if (UInv_InventoryGrid* LocalHoverGrid = HoverItem->GetOwnerGrid())
 	{
 		if (LocalHoverGrid->GetHoverItem() == HoverItem)
+		{
 			LocalHoverGrid->ClearHoverItem();
+		}
 	}
 	else
 	{
 		// Fallback: find grid with hover item if owner reference is broken
 		if (UInv_InventoryGrid* OtherHoverGrid = UInv_GridInitialization::GetGridWithHoverItem(TargetGrid))
+		{
 			if (OtherHoverGrid->GetHoverItem() == HoverItem)
+			{
 				OtherHoverGrid->ClearHoverItem();
+			}
+		}
 	}
 
 	return true;
@@ -239,10 +297,16 @@ bool UInv_GridCrossOperations::HandleCrossGridSwap(UInv_InventoryGrid* SourceGri
 												  UInv_HoverItem* HoverItem, UInv_InventoryItem* TargetItem, 
 												  int32 TargetIndex)
 {
-	if (!IsValid(SourceGrid) || !IsValid(TargetGrid) || !IsValid(HoverItem) || !IsValid(TargetItem)) return false;
+	if (!IsValid(SourceGrid) || !IsValid(TargetGrid) || !IsValid(HoverItem) || !IsValid(TargetItem))
+	{
+		return false;
+	}
 
 	UInv_InventoryItem* HoverInvItem = HoverItem->GetInventoryItem();
-	if (!IsValid(HoverInvItem)) return false;
+	if (!IsValid(HoverInvItem))
+	{
+		return false;
+	}
 
 	// Get item information
 	const int32 HoverStackCount = HoverItem->GetStackCount();
@@ -256,7 +320,10 @@ bool UInv_GridCrossOperations::HandleCrossGridSwap(UInv_InventoryGrid* SourceGri
 	const FInv_GridFragment* HoverGridFragment = GetFragment<FInv_GridFragment>(HoverInvItem, FragmentTags::GridFragment);
 	const FInv_GridFragment* TargetGridFragment = GetFragment<FInv_GridFragment>(TargetItem, FragmentTags::GridFragment);
 	
-	if (!HoverGridFragment || !TargetGridFragment) return false;
+	if (!HoverGridFragment || !TargetGridFragment)
+	{
+		return false;
+	}
 
 	const FIntPoint HoverDimensions = HoverGridFragment->GetGridSize();
 	const FIntPoint TargetDimensions = TargetGridFragment->GetGridSize();
@@ -264,16 +331,22 @@ bool UInv_GridCrossOperations::HandleCrossGridSwap(UInv_InventoryGrid* SourceGri
 	// Find the upper-left index of the target item in its grid
 	int32 TargetUpperLeftIndex = TargetIndex;
 	if (TargetGrid->GridSlots.IsValidIndex(TargetIndex))
+	{
 		TargetUpperLeftIndex = TargetGrid->GridSlots[TargetIndex]->GetUpperLeftIndex();
+	}
 
 	// Check if hover item can fit in target position
 	if (!UInv_GridItemPlacement::IsInGridBounds(TargetGrid, TargetIndex, HoverDimensions))
+	{
 		return false;
+	}
 
 	// Check if target item can fit in source grid
 	FInv_SlotAvailabilityResult SourceAvailability = UInv_GridItemPlacement::HasRoomForItem(SourceGrid, TargetItem, TargetStackCount);
 	if (SourceAvailability.TotalRoomToFill <= 0)
+	{
 		return false;
+	}
 
 
 	// Step 1: Remove target item from target grid
@@ -287,7 +360,9 @@ bool UInv_GridCrossOperations::HandleCrossGridSwap(UInv_InventoryGrid* SourceGri
 	UInv_InventoryGrid* OriginalGrid = HoverItem->GetOwnerGrid();
 	int32 OriginalIndex = HoverItem->GetPreviousGridIndex();
 	if (IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
+	{
 		UInv_GridItemPlacement::RemoveItemFromGrid(OriginalGrid, HoverInvItem, OriginalIndex);
+	}
 
 	// Step 3: Place target item in source grid using availability result
 	SourceAvailability.Item = TargetItem;
@@ -295,8 +370,13 @@ bool UInv_GridCrossOperations::HandleCrossGridSwap(UInv_InventoryGrid* SourceGri
 
 	// Step 4: Clear hover item with proper ownership handling
 	if (UInv_InventoryGrid* HoverGrid = UInv_GridInitialization::GetGridWithHoverItem(TargetGrid))
+	{
 		// Ensure we're clearing from the correct grid
-		if (HoverGrid->GetHoverItem() == HoverItem) HoverGrid->ClearHoverItem();
+		if (HoverGrid->GetHoverItem() == HoverItem)
+		{
+			HoverGrid->ClearHoverItem();
+		}
+	}
 
 	return true;
 }

@@ -38,10 +38,13 @@ void UInv_InventoryComponent::TryAddItem(UInv_ItemComponent* ItemComponent)
 	
 	// Always add Backpack and Locked as fallbacks if they're not already the preferred category
 	if (ItemCategory != EInv_ItemCategory::Backpack)
+	{
 		CategoriesToTry.Add(EInv_ItemCategory::Backpack);
-
+	}
 	if (ItemCategory != EInv_ItemCategory::Locked)
+	{
 		CategoriesToTry.Add(EInv_ItemCategory::Locked);
+	}
 
 	FInv_SlotAvailabilityResult Result;
 	UInv_InventoryItem* FoundItem = nullptr;
@@ -78,7 +81,9 @@ void UInv_InventoryComponent::TryAddItem(UInv_ItemComponent* ItemComponent)
 		Server_AddStacksToItem(ItemComponent, ValidCategory, Result.TotalRoomToFill, Result.Remainder);
 	}
 	else if (Result.TotalRoomToFill > 0)
+	{
 		Server_AddNewItem(ItemComponent, ValidCategory, Result.bStackable ? Result.TotalRoomToFill : 0, Result.Remainder);
+	}
 }
 
 // Updated Server_AddNewItem to accept category parameter
@@ -162,9 +167,13 @@ void UInv_InventoryComponent::Server_DropItem_Implementation(UInv_InventoryItem*
 {
 	const int32 NewStackCount = Item->GetTotalStackCount() - StackCount;
 	if (NewStackCount <= 0)
+	{
 		InventoryList.RemoveEntry(Item);
+	}
 	else
+	{
 		Item->SetTotalStackCount(NewStackCount);
+	}
 
 	SpawnDroppedItem(Item, StackCount);
 }
@@ -180,22 +189,28 @@ void UInv_InventoryComponent::SpawnDroppedItem(UInv_InventoryItem* Item, int32 S
 
 	FInv_ItemManifest& ItemManifest = Item->GetItemManifestMutable();
 	if (FInv_StackableFragment* StackableFragment = ItemManifest.GetFragmentOfTypeMutable<FInv_StackableFragment>())
+	{
 		StackableFragment->SetStackCount(StackCount);
-
+	}
 	ItemManifest.SpawnPickupActor(this, SpawnLocation, SpawnRotation);
 }
 
 void UInv_InventoryComponent::Server_ConsumeItem_Implementation(UInv_InventoryItem* Item)
 {
 	const int32 NewStackCount = Item->GetTotalStackCount() - 1;
-
 	if (NewStackCount <= 0)
+	{
 		InventoryList.RemoveEntry(Item);
-	else 
+	}
+	else
+	{
 		Item->SetTotalStackCount(NewStackCount);
+	}
 
 	if (FInv_ConsumableFragment* ConsumableFragment = Item->GetItemManifestMutable().GetFragmentOfTypeMutable<FInv_ConsumableFragment>())
+	{
 		ConsumableFragment->OnConsume(OwningController.Get());
+	}
 }
 
 void UInv_InventoryComponent::Server_EquipSlotClicked_Implementation(UInv_InventoryItem* ItemToEquip, UInv_InventoryItem* ItemToUnequip)
@@ -212,16 +227,23 @@ void UInv_InventoryComponent::Multicast_EquipSlotClicked_Implementation(UInv_Inv
 
 void UInv_InventoryComponent::ToggleInventoryMenu()
 {
-	if (bInventoryMenuOpen) 
-		 CloseInventoryMenu();
-	else OpenInventoryMenu();
-
+	if (bInventoryMenuOpen)
+	{
+		CloseInventoryMenu();
+	}
+	else
+	{
+		OpenInventoryMenu();
+	}
 	OnInventoryMenuToggled.Broadcast(bInventoryMenuOpen);
 }
 
 void UInv_InventoryComponent::AddRepSubObj(UObject* SubObj)
 {
-	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && IsValid(SubObj))	AddReplicatedSubObject(SubObj);
+	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && IsValid(SubObj))
+	{
+		AddReplicatedSubObject(SubObj);
+	}
 }
 
 void UInv_InventoryComponent::BeginPlay()

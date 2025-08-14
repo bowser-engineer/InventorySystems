@@ -200,7 +200,10 @@ FReply UInv_SpatialInventory::NativeOnMouseButtonUp(const FGeometry& MyGeometry,
 		GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
 		{
 			// Only clear if there's still a hover item after child widgets had a chance to handle it
-			if (HasHoverItem()) UInv_InventoryStatics::ClearHoverItem(Cast<UInv_InventoryGrid>(this));
+			if (HasHoverItem())
+			{
+				UInv_InventoryStatics::ClearHoverItem(Cast<UInv_InventoryGrid>(this));
+			}
 		});
 	}
 	
@@ -318,8 +321,9 @@ void UInv_SpatialInventory::RemoveEquippedSlottedItem(UInv_EquippedSlottedItem* 
 	if (!IsValid(EquippedSlottedItem)) return;
 
 	if (EquippedSlottedItem->OnEquippedSlottedItemClicked.IsAlreadyBound(this, &ThisClass::EquippedSlottedItemClicked))
+	{
 		EquippedSlottedItem->OnEquippedSlottedItemClicked.RemoveDynamic(this, &ThisClass::EquippedSlottedItemClicked);
-
+	}
 	EquippedSlottedItem->RemoveFromParent();
 }
 
