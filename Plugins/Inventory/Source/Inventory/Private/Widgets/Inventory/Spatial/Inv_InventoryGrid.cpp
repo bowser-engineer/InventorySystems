@@ -210,9 +210,6 @@ void UInv_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		UInv_GridHoverManagement::PickUp(this, ClickedInventoryItem, GridIndex);
 		return;
 	}
-	else
-	{
-	}
 
 	if (UInv_GridPopupInteractions::IsRightClick(MouseEvent))
 	{
@@ -227,47 +224,25 @@ void UInv_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 	}
 
 	if (CurrentQueryResult.ValidItem.IsValid())
-	{
 		SwapWithHoverItem(ClickedInventoryItem, GridIndex);
-	}
 }
 
 void UInv_InventoryGrid::OnSlottedItemReleased(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
 	
 	// Check if we have a hover item to potentially stack with the released target
-	if (!IsValid(HoverItem))
-	{
-		return;
-	}
-	
-	
 	// Check if this is the same grid
-	if (!GridSlots.IsValidIndex(GridIndex))
-	{
-		return;
-	}
-	
+	if (!IsValid(HoverItem) || !GridSlots.IsValidIndex(GridIndex)) return;
+
 	UInv_InventoryItem* TargetInventoryItem = GridSlots[GridIndex]->GetInventoryItem().Get();
-	if (!IsValid(TargetInventoryItem))
-	{
-		return;
-	}
+	if (!IsValid(TargetInventoryItem)) return;
 	
 	UInv_InventoryItem* HoverInventoryItem = HoverItem->GetInventoryItem();
-	if (!IsValid(HoverInventoryItem))
-	{
-		return;
-	}
-	
+	if (!IsValid(HoverInventoryItem)) return;
+
 	// Check if they are stackable items of the same type
 	if (UInv_GridPopupInteractions::IsSameStackable(this, TargetInventoryItem))
-	{
 		HandleStackableItemInteraction(TargetInventoryItem, GridIndex);
-	}
-	else
-	{
-	}
 }
 
 void UInv_InventoryGrid::HandleStackableItemInteraction(UInv_InventoryItem* ClickedInventoryItem, int32 GridIndex)
@@ -354,7 +329,6 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 {
 	UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this);
 
-
 	if (GridWithHoverItem && GridWithHoverItem != this)
 	{
 		UInv_HoverItem* OtherHoverItem = GridWithHoverItem->GetHoverItem();
@@ -368,9 +342,7 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 			if (UInv_InventoryGrid* OwnerGrid = OtherHoverItem->GetOwnerGrid())
 			{
 				if (OwnerGrid->GetHoverItem() == OtherHoverItem)
-				{
 					OwnerGrid->ClearHoverItem();
-				}
 			}
 			else
 			{
@@ -385,34 +357,19 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 			UInv_InventoryItem* ClickedItem = GridSlots[GridIndex]->GetInventoryItem().Get();
 			UInv_InventoryItem* OtherHoverInvItem = OtherHoverItem->GetInventoryItem();
 			
-			
 			// Check if they are stackable items of the same type
 			if (UInv_GridCrossOperations::AreItemsStackable(OtherHoverInvItem, ClickedItem))
 			{
-				if (UInv_GridCrossOperations::HandleCrossGridStacking(this, OtherHoverItem, GridIndex))
-				{
-					return;
-				}
-				else
-				{
-					return;
-				}
-			}
-			else
-			{
-				OnSlottedItemClicked(GridIndex, MouseEvent);
+				UInv_GridCrossOperations::HandleCrossGridStacking(this, OtherHoverItem, GridIndex);
 				return;
 			}
+
+			OnSlottedItemClicked(GridIndex, MouseEvent);
+			return;
 		}
 
-		if (UInv_GridCrossOperations::HandleCrossGridTransfer(this, GridWithHoverItem, OtherHoverItem, GridIndex))
-		{
-			return;
-		}
-		else
-		{
-			return;
-		}
+		UInv_GridCrossOperations::HandleCrossGridTransfer(this, GridWithHoverItem, OtherHoverItem, GridIndex);
+		return;
 	}
 
 	// OnGridSlotClicked now only handles pickup (mouse down event)
@@ -432,67 +389,55 @@ void UInv_InventoryGrid::OnGridSlotReleased(int32 GridIndex, const FPointerEvent
 	UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this);
 
 
-	if (GridWithHoverItem && GridWithHoverItem != this)
+	if (!GridWithHoverItem || GridWithHoverItem == this)
+		return;
+
+	UInv_HoverItem* OtherHoverItem = GridWithHoverItem->GetHoverItem();
+	if (!IsValid(OtherHoverItem))
+		return;
+
+	UInv_InventoryItem* HoverInvItem = OtherHoverItem->GetInventoryItem();
+	if (!IsValid(HoverInvItem))
 	{
-		UInv_HoverItem* OtherHoverItem = GridWithHoverItem->GetHoverItem();
-
-		if (!IsValid(OtherHoverItem)) return;
-
-		UInv_InventoryItem* HoverInvItem = OtherHoverItem->GetInventoryItem();
-		if (!IsValid(HoverInvItem))
+		// Clear hover item from the owning grid if it matches, otherwise from the found grid
+		if (UInv_InventoryGrid* OwnerGrid = OtherHoverItem->GetOwnerGrid())
 		{
-			// Clear hover item from the owning grid, not just any grid
-			if (UInv_InventoryGrid* OwnerGrid = OtherHoverItem->GetOwnerGrid())
-			{
-				if (OwnerGrid->GetHoverItem() == OtherHoverItem)
-				{
-					OwnerGrid->ClearHoverItem();
-				}
-			}
-			else
-			{
-				GridWithHoverItem->ClearHoverItem();
-			}
-			return;
-		}
-
-		// Check if we clicked on a slot that has an item
-		if (GridSlots.IsValidIndex(GridIndex) && GridSlots[GridIndex]->GetInventoryItem().IsValid())
-		{
-			UInv_InventoryItem* ClickedItem = GridSlots[GridIndex]->GetInventoryItem().Get();
-			UInv_InventoryItem* OtherHoverInvItem = OtherHoverItem->GetInventoryItem();
-			
-			
-			// Check if they are stackable items of the same type
-			if (UInv_GridCrossOperations::AreItemsStackable(OtherHoverInvItem, ClickedItem))
-			{
-				if (UInv_GridCrossOperations::HandleCrossGridStacking(this, OtherHoverItem, GridIndex))
-				{
-					return;
-				}
-				else
-				{
-					UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
-					return;
-				}
-			}
-			else
-			{
-				UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
-				return;
-			}
-		}
-
-		if (UInv_GridCrossOperations::HandleCrossGridTransfer(this, GridWithHoverItem, OtherHoverItem, GridIndex))
-		{
-			return;
+			if (OwnerGrid->GetHoverItem() == OtherHoverItem)
+				OwnerGrid->ClearHoverItem();
 		}
 		else
 		{
+			GridWithHoverItem->ClearHoverItem();
+		}
+		return;
+	}
+
+	// If clicked slot has an item
+	if (GridSlots.IsValidIndex(GridIndex) && GridSlots[GridIndex]->GetInventoryItem().IsValid())
+	{
+		UInv_InventoryItem* ClickedItem = GridSlots[GridIndex]->GetInventoryItem().Get();
+		UInv_InventoryItem* OtherHoverInvItem = OtherHoverItem->GetInventoryItem();
+
+		// If stackable
+		if (UInv_GridCrossOperations::AreItemsStackable(OtherHoverInvItem, ClickedItem))
+		{
+			if (UInv_GridCrossOperations::HandleCrossGridStacking(this, OtherHoverItem, GridIndex))
+				return;
+
 			UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
 			return;
 		}
+
+		UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
+		return;
 	}
+
+	// Transfer handling
+	if (UInv_GridCrossOperations::HandleCrossGridTransfer(this, GridWithHoverItem, OtherHoverItem, GridIndex))
+		return;
+
+	UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
+
 
 	// Handle case when there is a hover item - allow placing items
 	if (!IsValid(HoverItem)) return;
@@ -514,35 +459,37 @@ void UInv_InventoryGrid::OnGridSlotReleased(int32 GridIndex, const FPointerEvent
 	}
 
 	auto GridSlot = GridSlots[ItemDropIndex];
+
 	if (!GridSlot->GetInventoryItem().IsValid())
-	{
 		UInv_GridHoverManagement::PutDownOnIndex(this, ItemDropIndex);
-	}
 }
 
 void UInv_InventoryGrid::OnInventoryMenuToggled(bool bOpen)
 {
 	if (bOpen)
 	{
-		// Clear the recently unequipped items list when inventory opens
-		UInv_SpatialInventory* SpatialInventory = Cast<UInv_SpatialInventory>(UInv_InventoryStatics::GetInventoryWidget(GetOwningPlayer()));
-		if (IsValid(SpatialInventory))
-		{
-			SpatialInventory->ClearRecentlyUnequippedItems();
-		}
+		UInv_SpatialInventory* SpatialInventory = Cast<UInv_SpatialInventory>(
+			UInv_InventoryStatics::GetInventoryWidget(GetOwningPlayer())
+		);
+		if (!IsValid(SpatialInventory))
+			return;
+
+		SpatialInventory->ClearRecentlyUnequippedItems();
+		return;
 	}
-	else
-	{
-		// Find the grid with the hover item and clear it when inventory closes
-		if (UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this))
-		{
-			if (UInv_HoverItem* LocalHoverItem = GridWithHoverItem->GetHoverItem())
-			{
-					UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
-			}
-		}
-	}
+
+	UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this);
+
+	if (!GridWithHoverItem)
+		return;
+
+	UInv_HoverItem* LocalHoverItem = GridWithHoverItem->GetHoverItem();
+	if (!LocalHoverItem)
+		return;
+
+	UInv_GridHoverManagement::ClearHoverItem(GridWithHoverItem);
 }
+
 
 UUserWidget* UInv_InventoryGrid::GetVisibleCursorWidget()
 {
