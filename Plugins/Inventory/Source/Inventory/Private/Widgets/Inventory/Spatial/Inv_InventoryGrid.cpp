@@ -170,48 +170,38 @@ void UInv_InventoryGrid::AddStacks(const FInv_SlotAvailabilityResult& Result)
 
 void UInv_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
-	
 	UInv_InventoryStatics::ItemUnhovered(GetOwningPlayer());
 
 	check(GridSlots.IsValidIndex(GridIndex));
 	UInv_InventoryItem* ClickedInventoryItem = GridSlots[GridIndex]->GetInventoryItem().Get();
 
-	// Check for cross-grid hover item first
+	// --- Handle cross-grid hover item ---
 	UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(this);
 	if (GridWithHoverItem && GridWithHoverItem != this)
 	{
 		UInv_HoverItem* OtherHoverItem = GridWithHoverItem->GetHoverItem();
-		if (IsValid(OtherHoverItem))
+		UInv_InventoryItem* HoverInvItem = OtherHoverItem ? OtherHoverItem->GetInventoryItem() : nullptr;
+
+		if (IsValid(HoverInvItem))
 		{
-			UInv_InventoryItem* HoverInvItem = OtherHoverItem->GetInventoryItem();
-			if (IsValid(HoverInvItem))
+			if (UInv_GridCrossOperations::AreItemsStackable(HoverInvItem, ClickedInventoryItem))
 			{
-				// Check if they are stackable items of the same type
-				if (UInv_GridCrossOperations::AreItemsStackable(HoverInvItem, ClickedInventoryItem))
-				{
-					// Use cross-grid stacking logic directly
-					UInv_GridCrossOperations::HandleCrossGridStacking(this, OtherHoverItem, GridIndex);
-					return;
-				}
-				else
-				{
-					SwapWithHoverItem(ClickedInventoryItem, GridIndex);
-					return;
-				}
+				UInv_GridCrossOperations::HandleCrossGridStacking(this, OtherHoverItem, GridIndex);
+				return;
 			}
+
+			SwapWithHoverItem(ClickedInventoryItem, GridIndex);
+			return;
 		}
 	}
 
-	// Check if hover item is valid AND has a valid inventory item
-	bool bHasValidHoverItem = IsValid(HoverItem) && IsValid(HoverItem->GetInventoryItem());
-	
+	// --- Handle local hover / clicks ---
+	const bool bHasValidHoverItem = IsValid(HoverItem) && IsValid(HoverItem->GetInventoryItem());
+
 	if (!bHasValidHoverItem && UInv_GridPopupInteractions::IsLeftClick(MouseEvent))
 	{
 		UInv_GridHoverManagement::PickUp(this, ClickedInventoryItem, GridIndex);
 		return;
-	}
-	else
-	{
 	}
 
 	if (UInv_GridPopupInteractions::IsRightClick(MouseEvent))
@@ -231,6 +221,7 @@ void UInv_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 		SwapWithHoverItem(ClickedInventoryItem, GridIndex);
 	}
 }
+
 
 void UInv_InventoryGrid::OnSlottedItemReleased(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
