@@ -235,39 +235,34 @@ void UInv_InventoryGrid::OnSlottedItemClicked(int32 GridIndex, const FPointerEve
 void UInv_InventoryGrid::OnSlottedItemReleased(int32 GridIndex, const FPointerEvent& MouseEvent)
 {
 	
-	// Check if we have a hover item to potentially stack with the released target
-	if (!IsValid(HoverItem))
-	{
-		return;
-	}
-	
-	
-	// Check if this is the same grid
-	if (!GridSlots.IsValidIndex(GridIndex))
-	{
-		return;
-	}
+	if (!IsValid(HoverItem)) return;
+
+	if (!GridSlots.IsValidIndex(GridIndex))	return;
 	
 	UInv_InventoryItem* TargetInventoryItem = GridSlots[GridIndex]->GetInventoryItem().Get();
-	if (!IsValid(TargetInventoryItem))
-	{
-		return;
-	}
+	if (!IsValid(TargetInventoryItem)) return;
 	
 	UInv_InventoryItem* HoverInventoryItem = HoverItem->GetInventoryItem();
-	if (!IsValid(HoverInventoryItem))
+	if (!IsValid(HoverInventoryItem)) return;
+	
+	// Check if releasing over the original source item
+	bool bIsReleasingOverSource = (HoverItem->GetOwnerGrid() == this) && 
+	                             (HoverItem->GetPreviousGridIndex() == GridIndex) &&
+	                             (HoverInventoryItem == TargetInventoryItem);
+
+	if (bIsReleasingOverSource)
 	{
+		// Handle releasing over source - put the item back in place
+		UInv_GridHoverManagement::ClearHoverItem(this);
 		return;
 	}
 	
 	// Check if they are stackable items of the same type
 	if (UInv_GridPopupInteractions::IsSameStackable(this, TargetInventoryItem))
-	{
 		HandleStackableItemInteraction(TargetInventoryItem, GridIndex);
-	}
 	else
-	{
-	}
+		UInv_GridHoverManagement::ClearHoverItem(this);
+
 }
 
 void UInv_InventoryGrid::HandleStackableItemInteraction(UInv_InventoryItem* ClickedInventoryItem, int32 GridIndex)
@@ -390,13 +385,7 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 			if (UInv_GridCrossOperations::AreItemsStackable(OtherHoverInvItem, ClickedItem))
 			{
 				if (UInv_GridCrossOperations::HandleCrossGridStacking(this, OtherHoverItem, GridIndex))
-				{
 					return;
-				}
-				else
-				{
-					return;
-				}
 			}
 			else
 			{
@@ -406,13 +395,7 @@ void UInv_InventoryGrid::OnGridSlotClicked(int32 GridIndex, const FPointerEvent&
 		}
 
 		if (UInv_GridCrossOperations::HandleCrossGridTransfer(this, GridWithHoverItem, OtherHoverItem, GridIndex))
-		{
 			return;
-		}
-		else
-		{
-			return;
-		}
 	}
 
 	// OnGridSlotClicked now only handles pickup (mouse down event)

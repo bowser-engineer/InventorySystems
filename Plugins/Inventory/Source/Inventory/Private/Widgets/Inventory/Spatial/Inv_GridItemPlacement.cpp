@@ -101,10 +101,11 @@ bool UInv_GridItemPlacement::HasRoomAtIndex(const UInv_InventoryGrid* Grid, cons
 	return bHasRoomAtIndex;
 }
 
-bool UInv_GridItemPlacement::CheckSlotConstraints(const UInv_InventoryGrid* Grid, const UInv_GridSlot* GridSlot,
-												const UInv_GridSlot* SubGridSlot, const TSet<int32>& CheckedIndices,
-												TSet<int32>& OutTentativelyClaimed, const FGameplayTag& ItemType,
-												const int32 MaxStackSize)
+bool UInv_GridItemPlacement::CheckSlotConstraints(
+	const UInv_InventoryGrid* Grid, const UInv_GridSlot* GridSlot,
+	const UInv_GridSlot* SubGridSlot, const TSet<int32>& CheckedIndices,
+	TSet<int32>& OutTentativelyClaimed, const FGameplayTag& ItemType,
+	const int32 MaxStackSize)
 {
 	if (!IsValid(Grid) || !IsValid(GridSlot) || !IsValid(SubGridSlot)) return false;
 
