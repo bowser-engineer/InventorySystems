@@ -13,6 +13,7 @@ class UInv_InventoryGrid;
 class UWidgetSwitcher;
 class UButton;
 class UCanvasPanel;
+class UImage;
 class UInv_HoverItem;
 /**
  * 
@@ -62,6 +63,13 @@ public:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UInv_InventoryGrid> Grid_Quiver;
+
+	// Manual bounds configuration for drop detection 
+	UPROPERTY(EditAnywhere, Category = "Inventory Bounds", meta = (DisplayName = "Drop Safe Zone - Top Left"))
+	FVector2D InventoryBoundsTopLeft = FVector2D(40, 100);
+
+	UPROPERTY(EditAnywhere, Category = "Inventory Bounds", meta = (DisplayName = "Drop Safe Zone - Bottom Right"))
+	FVector2D InventoryBoundsBottomRight = FVector2D(565, 970);
 
 private:
 

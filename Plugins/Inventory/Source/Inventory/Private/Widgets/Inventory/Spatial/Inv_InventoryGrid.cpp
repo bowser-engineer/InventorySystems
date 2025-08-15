@@ -481,6 +481,7 @@ void UInv_InventoryGrid::OnGridSlotReleased(int32 GridIndex, const FPointerEvent
 
 	if (CurrentQueryResult.ValidItem.IsValid() && GridSlots.IsValidIndex(CurrentQueryResult.UpperLeftIndex))
 	{
+		UE_LOG(LogInventory, Warning, TEXT("OnGridSlotReleased called with a valid hover item but no valid target item. This should not happen!"));
 		// Don't allow swapping on release - that would require drag to specific item
 		UInv_GridHoverManagement::ClearHoverItem(this);
 		return;
@@ -488,6 +489,8 @@ void UInv_InventoryGrid::OnGridSlotReleased(int32 GridIndex, const FPointerEvent
 
 	if (!UInv_GridItemPlacement::IsInGridBounds(this, ItemDropIndex, HoverItem->GetGridDimensions())) 
 	{
+		UE_LOG(LogInventory, Warning, TEXT("OnGridSlotReleased called with an out-of-bounds ItemDropIndex: %d"), ItemDropIndex);
+		// Clear hover item if the drop index is out of bounds
 		UInv_GridHoverManagement::ClearHoverItem(this);
 		return;
 	}

@@ -204,17 +204,30 @@ void UInv_GridHoverManagement::PutHoverItemBack(UInv_InventoryGrid* Grid)
 
 void UInv_GridHoverManagement::DropItem(UInv_InventoryGrid* Grid)
 {
-	if (!IsValid(Grid)) return;
+	if (!IsValid(Grid)) 
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DropItem: Invalid Grid"));
+		return;
+	}
 
 	UInv_InventoryGrid* GridWithHoverItem = UInv_GridInitialization::GetGridWithHoverItem(Grid);
-	if (!GridWithHoverItem) return;
+	if (!GridWithHoverItem) 
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DropItem: No grid with hover item found"));
+		return;
+	}
 
 	UInv_HoverItem* ActualHoverItem = GridWithHoverItem->GetHoverItem();
-	if (!IsValid(ActualHoverItem)) return;
+	if (!IsValid(ActualHoverItem)) 
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DropItem: No valid hover item"));
+		return;
+	}
 	
 	UInv_InventoryItem* InventoryItem = ActualHoverItem->GetInventoryItem();
 	if (!IsValid(InventoryItem))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("DropItem: No valid inventory item"));
 		ClearHoverItem(GridWithHoverItem);
 		return;
 	}
@@ -222,13 +235,40 @@ void UInv_GridHoverManagement::DropItem(UInv_InventoryGrid* Grid)
 	// Store the previous grid index and owner grid before clearing hover item
 	int32 PreviousGridIndex = ActualHoverItem->GetPreviousGridIndex();
 	UInv_InventoryGrid* OwnerGrid = ActualHoverItem->GetOwnerGrid();
+	int32 StackCount = ActualHoverItem->GetStackCount();
 
-	Grid->InventoryComponent->Server_DropItem(Grid->HoverItem->GetInventoryItem(), Grid->HoverItem->GetStackCount());
+	UE_LOG(LogTemp, Log, TEXT("DropItem: Dropping item %s with stack count %d from grid index %d"),
+		*InventoryItem->GetName(), StackCount, PreviousGridIndex);
+
+	// Use the grid with inventory component to drop the item
+	if (GridWithHoverItem->InventoryComponent.IsValid())
+	{
+		GridWithHoverItem->InventoryComponent->Server_DropItem(InventoryItem, StackCount);
+		UE_LOG(LogTemp, Log, TEXT("DropItem: Called Server_DropItem"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("DropItem: No InventoryComponent found"));
+	}
 
 	// Remove the item from the grid visually after dropping
+	UE_LOG(LogTemp, Log, TEXT("DropItem: OwnerGrid valid: %s, PreviousGridIndex: %d"), 
+		IsValid(OwnerGrid) ? TEXT("true") : TEXT("false"), PreviousGridIndex);
+		
 	if (IsValid(OwnerGrid) && OwnerGrid->GridSlots.IsValidIndex(PreviousGridIndex))
 	{
 		UInv_GridItemPlacement::RemoveItemFromGrid(OwnerGrid, InventoryItem, PreviousGridIndex);
+		UE_LOG(LogTemp, Log, TEXT("DropItem: Removed item from grid visually"));
+	}
+	else if (IsValid(GridWithHoverItem) && GridWithHoverItem->GridSlots.IsValidIndex(PreviousGridIndex))
+	{
+		// Fallback: try removing from the grid that has the hover item
+		UInv_GridItemPlacement::RemoveItemFromGrid(GridWithHoverItem, InventoryItem, PreviousGridIndex);
+		UE_LOG(LogTemp, Log, TEXT("DropItem: Removed item from grid visually (fallback)"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DropItem: Could not remove item from grid - invalid grid or index"));
 	}
 
 	ClearHoverItem(GridWithHoverItem);

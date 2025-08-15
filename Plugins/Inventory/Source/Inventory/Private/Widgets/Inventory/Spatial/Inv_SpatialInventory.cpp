@@ -5,6 +5,7 @@
 
 #include "Inventory.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
 #include "Components/WidgetSwitcher.h"
 #include "InventoryManagement/Utils/Inv_InventoryStatics.h"
 #include "Widgets/Inventory/Spatial/Inv_InventoryGrid.h"
@@ -200,7 +201,44 @@ FReply UInv_SpatialInventory::NativeOnMouseButtonUp(const FGeometry& MyGeometry,
 			// Only clear if there's still a hover item after child widgets had a chance to handle it
 			if (HasHoverItem())
 			{
-				UInv_InventoryStatics::ClearHoverItem(Cast<UInv_InventoryGrid>(this));
+				// Find which grid has the hover item
+				UInv_InventoryGrid* GridWithHoverItem = nullptr;
+				if (Grid_Backpack && Grid_Backpack->HasHoverItem()) GridWithHoverItem = Grid_Backpack;
+				else if (Grid_Satchel && Grid_Satchel->HasHoverItem()) GridWithHoverItem = Grid_Satchel;
+				else if (Grid_Quiver && Grid_Quiver->HasHoverItem()) GridWithHoverItem = Grid_Quiver;
+				
+				if (!GridWithHoverItem)
+				{
+					UE_LOG(LogInventory, Warning, TEXT("HasHoverItem returned true but no grid found with hover item"));
+					return;
+				}
+				
+				// Manual bounds checking using configurable rectangle
+				FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetOwningPlayer());
+				
+				bool bIsWithinBounds = MousePosition.X >= InventoryBoundsTopLeft.X && 
+									   MousePosition.X <= InventoryBoundsBottomRight.X &&
+									   MousePosition.Y >= InventoryBoundsTopLeft.Y && 
+									   MousePosition.Y <= InventoryBoundsBottomRight.Y;
+				
+				UE_LOG(LogInventory, Log, TEXT("Manual bounds check - MousePos: (%f,%f), TopLeft: (%f,%f), BottomRight: (%f,%f), WithinBounds: %s"), 
+					MousePosition.X, MousePosition.Y, 
+					InventoryBoundsTopLeft.X, InventoryBoundsTopLeft.Y,
+					InventoryBoundsBottomRight.X, InventoryBoundsBottomRight.Y,
+					bIsWithinBounds ? TEXT("true") : TEXT("false"));
+				
+				if (bIsWithinBounds)
+				{
+					// Mouse is still within inventory bounds - just clear the hover item
+					UE_LOG(LogInventory, Log, TEXT("Clearing hover item - mouse still within inventory bounds."));
+					UInv_InventoryStatics::ClearHoverItem(GridWithHoverItem);
+				}
+				else
+				{
+					// Mouse is outside inventory bounds - drop the item to world
+					UE_LOG(LogInventory, Log, TEXT("Dropping hover item to world - mouse outside inventory bounds."));
+					UInv_GridHoverManagement::DropItem(GridWithHoverItem);
+				}
 			}
 		});
 	}
