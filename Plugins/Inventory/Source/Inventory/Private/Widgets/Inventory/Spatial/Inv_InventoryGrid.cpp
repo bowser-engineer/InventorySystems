@@ -277,30 +277,35 @@ void UInv_InventoryGrid::HandleStackableItemInteraction(UInv_InventoryItem* Clic
 	const int32 HoveredStackCount = HoverItem->GetStackCount();
 
 	// Additional safety checks for stack counts
-	if (ClickedStackCount < 0 || HoveredStackCount <= 0 || MaxStackSize <= 0)
-	{
-		return;
-	}
+	if (ClickedStackCount < 0 || HoveredStackCount <= 0 || MaxStackSize <= 0) return;
 
+	// Swapping items is currently not supported
+	// UInv_GridPopupInteractions::SwapStackCounts(this, ClickedStackCount, HoveredStackCount, GridIndex);
 	if (UInv_GridPopupInteractions::ShouldSwapStackCounts(RoomInClickedSlot, HoveredStackCount, MaxStackSize))
-	{
-		UInv_GridPopupInteractions::SwapStackCounts(this, ClickedStackCount, HoveredStackCount, GridIndex);
-		return;
-	}
+		return UInv_GridHoverManagement::ClearHoverItem(this);
 
 	if (UInv_GridPopupInteractions::ShouldConsumeHoverItemStacks(HoveredStackCount, RoomInClickedSlot))
-	{
-		UInv_GridPopupInteractions::ConsumeHoverItemStacks(this, ClickedStackCount, HoveredStackCount, GridIndex);
-		return;
-	}
+		return UInv_GridPopupInteractions::ConsumeHoverItemStacks(this, ClickedStackCount, HoveredStackCount, GridIndex);
 
-	if (UInv_GridPopupInteractions::ShouldFillInStack(RoomInClickedSlot, HoveredStackCount))
-	{
+	if (UInv_GridPopupInteractions::ShouldFillInStack(RoomInClickedSlot, HoveredStackCount)){
 		UInv_GridPopupInteractions::FillInStack(this, RoomInClickedSlot, HoveredStackCount - RoomInClickedSlot, GridIndex);
-		return;
-	}
 
-	// If none of the stacking operations succeeded, do nothing (keep item hovering)
+		// Remove the filled amount from original inventory item
+		UInv_InventoryGrid* OriginalGrid = HoverItem->GetOwnerGrid();
+		int32 OriginalIndex = HoverItem->GetPreviousGridIndex();
+		if (IsValid(OriginalGrid) && OriginalGrid->GridSlots.IsValidIndex(OriginalIndex))
+		{
+			const int32 NewOriginalStackCount = HoveredStackCount - RoomInClickedSlot;
+			OriginalGrid->GridSlots[OriginalIndex]->SetStackCount(NewOriginalStackCount);
+			if (OriginalGrid->SlottedItems.Contains(OriginalIndex))
+			{
+				OriginalGrid->SlottedItems.FindChecked(OriginalIndex)->UpdateStackCount(NewOriginalStackCount);
+			}
+		}
+		
+		// Clear the hover item after filling in the stack
+		return UInv_GridHoverManagement::ClearHoverItem(this);
+	}
 }
 
 bool UInv_InventoryGrid::HasHoverItem() const
